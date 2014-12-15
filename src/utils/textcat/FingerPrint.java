@@ -11,8 +11,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Map;
-import java.util.TreeSet;
 import java.util.Map.Entry;
+import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -45,17 +45,6 @@ public class FingerPrint extends Hashtable<String, Integer> {
 	}
 
 	/**
-	 * creates a FingerPrint by reading the FingerPrint-file referenced by the
-	 * passed path.
-	 * 
-	 * @param file
-	 *            path to the FingerPrint-file
-	 */
-	public FingerPrint(String file) {
-		this.loadFingerPrintFromFile(file);
-	}
-
-	/**
 	 * creates a FingerPrint by reading it with the passed InputStream
 	 * 
 	 * @param is
@@ -66,87 +55,14 @@ public class FingerPrint extends Hashtable<String, Integer> {
 	}
 
 	/**
-	 * creates a FingerPrint by analysing the content of the given file.
+	 * creates a FingerPrint by reading the FingerPrint-file referenced by the
+	 * passed path.
 	 * 
-	 * @param file file to be analysed
+	 * @param file
+	 *            path to the FingerPrint-file
 	 */
-	public void create(File file) {
-		char[] data = new char[1024];
-		String s = "";
-		int read;
-		try {
-			FileReader fr = new FileReader(file);
-			while ((read = fr.read(data)) != -1) {
-				s += new String(data, 0, read);
-			}
-			fr.close();
-			this.create(s);
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-
-	/**
-	 * fills the FingerPrint with all the NGrams and their numer of occurences
-	 * in the passed text.
-	 * 
-	 * @param text
-	 *            text to be analysed
-	 */
-	public void create(String text) {
-		this.clear();
-		this.computeNGrams(1, 5, text);
-		if (this.containsKey("_")) {
-			int blanksScore = this.remove("_");
-			this.put("_", blanksScore / 2);
-		}
-
-		entries = new TreeSet<Entry<String, Integer>>(
-				new NGramEntryComparator());
-		entries.addAll(this.entrySet());
-	}
-
-	/**
-	 * adds all NGrams with the passed order occuring in the given text to the
-	 * FingerPrint. For example:
-	 * 
-	 * text = "text" startOrder = 2, maxOrder = 2
-	 * 
-	 * so the NGrams added to the FingerPrint are:
-	 * 
-	 * "_t", "te", "ex", "xt", "t_"
-	 * 
-	 * all with a score (occurence) of 1
-	 * 
-	 * @param startOrder
-	 * @param maxOrder
-	 * @param text
-	 */
-	private void computeNGrams(int startOrder, int maxOrder, String text) {
-		String[] tokens = text.split("\\s");
-
-		for(int order = startOrder; order <= maxOrder; ++order) {
-				
-			for (String token : tokens) {
-				token = "_" + token + "_";
-			
-				for (int i = 0; i < (token.length() - order + 1); i++) {
-					String ngram = token.substring(i, i + order);
-					
-					Matcher matcher = pattern.matcher(ngram);
-					if (!matcher.find()) {
-						continue;
-					} else if (!this.containsKey(ngram)) {
-						this.put(ngram, 1);
-					} else {
-						int score = this.remove(ngram);
-						this.put(ngram, ++score);
-					}
-				}
-			}
-		}
+	public FingerPrint(String file) {
+		this.loadFingerPrintFromFile(file);
 	}
 
 	/**
@@ -196,8 +112,102 @@ public class FingerPrint extends Hashtable<String, Integer> {
 		}
 		return cats;
 	}
+
+	/**
+	 * adds all NGrams with the passed order occuring in the given text to the
+	 * FingerPrint. For example:
+	 * 
+	 * text = "text" startOrder = 2, maxOrder = 2
+	 * 
+	 * so the NGrams added to the FingerPrint are:
+	 * 
+	 * "_t", "te", "ex", "xt", "t_"
+	 * 
+	 * all with a score (occurence) of 1
+	 * 
+	 * @param startOrder
+	 * @param maxOrder
+	 * @param text
+	 */
+	private void computeNGrams(int startOrder, int maxOrder, String text) {
+		String[] tokens = text.split("\\s");
+
+		for(int order = startOrder; order <= maxOrder; ++order) {
+				
+			for (String token : tokens) {
+				token = "_" + token + "_";
+			
+				for (int i = 0; i < (token.length() - order + 1); i++) {
+					String ngram = token.substring(i, i + order);
+					
+					Matcher matcher = pattern.matcher(ngram);
+					if (!matcher.find()) {
+						continue;
+					} else if (!this.containsKey(ngram)) {
+						this.put(ngram, 1);
+					} else {
+						int score = this.remove(ngram);
+						this.put(ngram, ++score);
+					}
+				}
+			}
+		}
+	}
+
+	/**
+	 * creates a FingerPrint by analysing the content of the given file.
+	 * 
+	 * @param file file to be analysed
+	 */
+	public void create(File file) {
+		char[] data = new char[1024];
+		String s = "";
+		int read;
+		try {
+			FileReader fr = new FileReader(file);
+			while ((read = fr.read(data)) != -1) {
+				s += new String(data, 0, read);
+			}
+			fr.close();
+			this.create(s);
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	/**
+	 * fills the FingerPrint with all the NGrams and their numer of occurences
+	 * in the passed text.
+	 * 
+	 * @param text
+	 *            text to be analysed
+	 */
+	public void create(String text) {
+		this.clear();
+		this.computeNGrams(1, 5, text);
+		if (this.containsKey("_")) {
+			int blanksScore = this.remove("_");
+			this.put("_", blanksScore / 2);
+		}
+
+		entries = new TreeSet<Entry<String, Integer>>(
+				new NGramEntryComparator());
+		entries.addAll(this.entrySet());
+	}
 	
 	
+	/**
+	 * returns the category of the FingerPrint or "unknown" if the FingerPrint
+	 * wasn't categorized yet.
+	 * 
+	 * @return the category of the FingerPrint
+	 */
+	public String getCategory() {
+		return this.category;
+	}
+
 	public Map<String,Integer> getCategoryDistances() {
 		return this.categoryDistances;
 	}
@@ -230,41 +240,6 @@ public class FingerPrint extends Hashtable<String, Integer> {
 	}
 
 	/**
-	 * reads a FingerPrint from the passed InputStream
-	 * 
-	 * @param is
-	 *            InputStream to be read
-	 */
-	private void loadFingerPrintFromInputStream(InputStream is) {
-		entries = new TreeSet<Entry<String, Integer>>(
-				new NGramEntryComparator());
-		MyProperties properties = new MyProperties();
-		properties.load(is);
-		for (Entry<String, String> entry : properties.entrySet()) {
-			this.put(entry.getKey(), Integer.parseInt(entry.getValue()));
-		}
-		entries.addAll(this.entrySet());
-	}
-
-	/**
-	 * reads a FingerPrint from the file referenced by the passed path
-	 * 
-	 * @param file
-	 *            FingerPrint file to be read
-	 */
-	private void loadFingerPrintFromFile(String file) {
-		File fpFile = new File(file);
-		if (!fpFile.isDirectory()) {
-			try {
-				FileInputStream fis = new FileInputStream(file.toString());
-				this.loadFingerPrintFromInputStream(fis);
-			} catch (FileNotFoundException e) {
-				e.printStackTrace();
-			}
-		}
-	}
-
-	/**
 	 * gets the position of the NGram passed to method in the FingerPrint. the
 	 * NGrams are in descending order according to the number of occurences in
 	 * the text which was used creating the FingerPrint.
@@ -290,6 +265,41 @@ public class FingerPrint extends Hashtable<String, Integer> {
 	}
 
 	/**
+	 * reads a FingerPrint from the file referenced by the passed path
+	 * 
+	 * @param file
+	 *            FingerPrint file to be read
+	 */
+	private void loadFingerPrintFromFile(String file) {
+		File fpFile = new File(file);
+		if (!fpFile.isDirectory()) {
+			try {
+				FileInputStream fis = new FileInputStream(file.toString());
+				this.loadFingerPrintFromInputStream(fis);
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	/**
+	 * reads a FingerPrint from the passed InputStream
+	 * 
+	 * @param is
+	 *            InputStream to be read
+	 */
+	private void loadFingerPrintFromInputStream(InputStream is) {
+		entries = new TreeSet<Entry<String, Integer>>(
+				new NGramEntryComparator());
+		MyProperties properties = new MyProperties();
+		properties.load(is);
+		for (Entry<String, String> entry : properties.entrySet()) {
+			this.put(entry.getKey(), Integer.parseInt(entry.getValue()));
+		}
+		entries.addAll(this.entrySet());
+	}
+
+	/**
 	 * saves the fingerprint to a file named <categoryname>.lm in the execution
 	 * path.
 	 */
@@ -309,13 +319,13 @@ public class FingerPrint extends Hashtable<String, Integer> {
 	}
 
 	/**
-	 * returns the category of the FingerPrint or "unknown" if the FingerPrint
-	 * wasn't categorized yet.
+	 * sets the category of the FingerPrint
 	 * 
-	 * @return the category of the FingerPrint
+	 * @param category
+	 *            the category
 	 */
-	public String getCategory() {
-		return this.category;
+	protected void setCategory(String category) {
+		this.category = category;
 	}
 
 	/**
@@ -327,16 +337,6 @@ public class FingerPrint extends Hashtable<String, Integer> {
 			s += entry.getKey() + "\t" + entry.getValue() + "\n";
 		}
 		return s;
-	}
-
-	/**
-	 * sets the category of the FingerPrint
-	 * 
-	 * @param category
-	 *            the category
-	 */
-	protected void setCategory(String category) {
-		this.category = category;
 	}
 
 }

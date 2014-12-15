@@ -11,13 +11,13 @@ public class CrawlFolder implements Iterable<UserFolder> {
 	private String basedir;
 	private String ul;
 
+	public CrawlFolder(String path) {
+		this(path, null);
+	}
+
 	public CrawlFolder(String baseDir, String ul) {
 		this.basedir = baseDir;
 		this.ul = ul;
-	}
-
-	public CrawlFolder(String path) {
-		this(path, null);
 	}
 
 	@Override

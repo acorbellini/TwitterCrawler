@@ -2,7 +2,6 @@ package isistan.twitter.crawler;
 
 import isistan.twitter.crawler.config.CrawlerConfiguration;
 import isistan.twitter.crawler.status.UserStatus;
-import isistan.twitter.crawler.store.plain.PlainUserStatus;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -34,14 +33,6 @@ public class UserCrawler {
 
 		if (userProp.isDisabled())
 			return;
-
-		// final File userDir = new File(config.getCrawlDir().getPath() + "/" +
-		// u);
-		//
-		// if (!userDir.exists()) {
-		// log.info("Creating user crawl directory for " + u);
-		// userDir.mkdir();
-		// }
 
 		if (config.mustRecrawlInfo() || !userProp.isInfoComplete()) {
 			log.info("Storing User Info for " + u);

@@ -2,7 +2,6 @@ package isistan.twitter.stats;
 
 import gnu.trove.iterator.TIntIntIterator;
 import gnu.trove.iterator.TLongIntIterator;
-import gnu.trove.list.array.TIntArrayList;
 import gnu.trove.map.hash.TIntIntHashMap;
 import gnu.trove.map.hash.TLongIntHashMap;
 import isistan.def.utils.DataTypeUtils;
@@ -21,9 +20,43 @@ import java.io.InputStreamReader;
 import java.util.zip.GZIPInputStream;
 
 public class TwitterStats {
+	public static void main(String[] args) throws Exception {
+		new TwitterStats(args[0], args[1]).run();
+	}
+	private static int readInt(BufferedInputStream bis) throws IOException {
+		byte[] l = new byte[4];
+		l[0] = (byte) bis.read();
+		l[1] = (byte) bis.read();
+		l[2] = (byte) bis.read();
+		l[3] = (byte) bis.read();
+		return DataTypeUtils.byteArrayToInt(l);
+	}
+	private static long readLong(BufferedInputStream bis) throws IOException {
+		byte[] l = new byte[8];
+		l[0] = (byte) bis.read();
+		if (l[0] == -1)
+			return -1;
+		l[1] = (byte) bis.read();
+		l[2] = (byte) bis.read();
+		l[3] = (byte) bis.read();
+		l[4] = (byte) bis.read();
+		l[5] = (byte) bis.read();
+		l[6] = (byte) bis.read();
+		l[7] = (byte) bis.read();
+		return DataTypeUtils.byteArrayToLong(l, 0);
+	}
+
 	private String path;
+
 	private BufferedWriter out;
+
 	private BufferedWriter out2;
+
+	TLongIntHashMap followees = new TLongIntHashMap();
+
+	TLongIntHashMap followers = new TLongIntHashMap();
+
+	TIntIntHashMap tweets = new TIntIntHashMap();
 
 	public TwitterStats(String string, String out) throws IOException {
 		this.path = string;
@@ -33,8 +66,34 @@ public class TwitterStats {
 				50 * 1024 * 1024);
 	}
 
-	public static void main(String[] args) throws Exception {
-		new TwitterStats(args[0], args[1]).run();
+	private void adjacencyStats(File f) throws Exception {
+		long u;
+		int cont = 0;
+		BufferedInputStream bis = new BufferedInputStream(
+				new FileInputStream(f), 5 * 1024 * 1024);
+
+		while ((u = readLong(bis)) != -1) {
+			System.out.println((cont++) + ":" + u);
+			int followeesSize = readInt(bis) / 8;
+
+			for (int i = 0; i < followeesSize; i++) {
+				readLong(bis);
+				followees.adjustOrPutValue(u, 1, 1);
+			}
+
+			int followersSize = readInt(bis) / 8;
+			for (int i = 0; i < followersSize; i++) {
+				readLong(bis);
+				followers.adjustOrPutValue(u, 1, 1);
+			}
+		}
+	}
+
+	protected BufferedReader openGZip(File file) throws FileNotFoundException,
+			IOException {
+		GZIPInputStream gis = new GZIPInputStream(new FileInputStream(file),
+				64 * 1024);
+		return new BufferedReader(new InputStreamReader(gis, "UTF-8"));
 	}
 
 	private void run() throws Exception {
@@ -116,12 +175,6 @@ public class TwitterStats {
 		out2.close();
 	}
 
-	TLongIntHashMap followees = new TLongIntHashMap();
-
-	TLongIntHashMap followers = new TLongIntHashMap();
-
-	TIntIntHashMap tweets = new TIntIntHashMap();
-
 	private void tweetsStats(File file) throws IOException {
 		TIntIntHashMap internal = new TIntIntHashMap();
 		CSVReader reader = new CSVReader(openGZip(file), false, 5 * 1024 * 1024);
@@ -144,59 +197,5 @@ public class TwitterStats {
 			}
 		}
 		System.out.println(count);
-	}
-
-	protected BufferedReader openGZip(File file) throws FileNotFoundException,
-			IOException {
-		GZIPInputStream gis = new GZIPInputStream(new FileInputStream(file),
-				64 * 1024);
-		return new BufferedReader(new InputStreamReader(gis, "UTF-8"));
-	}
-
-	private void adjacencyStats(File f) throws Exception {
-		long u;
-		int cont = 0;
-		BufferedInputStream bis = new BufferedInputStream(
-				new FileInputStream(f), 5 * 1024 * 1024);
-
-		while ((u = readLong(bis)) != -1) {
-			System.out.println((cont++) + ":" + u);
-			int followeesSize = readInt(bis) / 8;
-
-			for (int i = 0; i < followeesSize; i++) {
-				readLong(bis);
-				followees.adjustOrPutValue(u, 1, 1);
-			}
-
-			int followersSize = readInt(bis) / 8;
-			for (int i = 0; i < followersSize; i++) {
-				readLong(bis);
-				followers.adjustOrPutValue(u, 1, 1);
-			}
-		}
-	}
-
-	private static int readInt(BufferedInputStream bis) throws IOException {
-		byte[] l = new byte[4];
-		l[0] = (byte) bis.read();
-		l[1] = (byte) bis.read();
-		l[2] = (byte) bis.read();
-		l[3] = (byte) bis.read();
-		return DataTypeUtils.byteArrayToInt(l);
-	}
-
-	private static long readLong(BufferedInputStream bis) throws IOException {
-		byte[] l = new byte[8];
-		l[0] = (byte) bis.read();
-		if (l[0] == -1)
-			return -1;
-		l[1] = (byte) bis.read();
-		l[2] = (byte) bis.read();
-		l[3] = (byte) bis.read();
-		l[4] = (byte) bis.read();
-		l[5] = (byte) bis.read();
-		l[6] = (byte) bis.read();
-		l[7] = (byte) bis.read();
-		return DataTypeUtils.byteArrayToLong(l, 0);
 	}
 }

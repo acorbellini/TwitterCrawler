@@ -1,15 +1,15 @@
 package isistan.twitter.crawler.migration;
 
 import gnu.trove.set.hash.TLongHashSet;
-import isistan.twitter.crawler.ListType;
-import isistan.twitter.crawler.TweetType;
+import isistan.twitter.crawler.adjacency.ListType;
 import isistan.twitter.crawler.folder.CrawlFolder;
 import isistan.twitter.crawler.folder.UserFolder;
+import isistan.twitter.crawler.info.UserInfo;
+import isistan.twitter.crawler.store.TwitterStore;
 import isistan.twitter.crawler.store.bigtext.BigTextStore;
-import isistan.twitter.crawler.store.h2.Tweet;
-import isistan.twitter.crawler.store.h2.TwitterStore;
-import isistan.twitter.crawler.store.h2.UserInfo;
-import isistan.twitterapi.util.StoreUtil;
+import isistan.twitter.crawler.tweet.Tweet;
+import isistan.twitter.crawler.tweet.TweetType;
+import isistan.twitter.crawler.util.StoreUtil;
 
 import java.io.File;
 import java.io.IOException;
@@ -24,9 +24,20 @@ import java.util.concurrent.TimeUnit;
 
 public class Validate {
 
+	public static void main(String[] args) throws Exception {
+		String userFile = null;
+		if (args.length == 3)
+			userFile = args[2];
+		new Validate(args[0], args[1], userFile);
+//		.run();
+	}
 	private CrawlFolder folder;
+
 	private TwitterStore store;
 
+	ExecutorService exec = Executors.newFixedThreadPool(50);
+
+	Semaphore max = new Semaphore(100);
 	public Validate(String folder, String db, String userFile) throws Exception {
 		if (userFile == null)
 			this.folder = new CrawlFolder(folder);
@@ -36,17 +47,6 @@ public class Validate {
 		this.store = new BigTextStore(new File(db));
 		this.store.close();
 	}
-
-	public static void main(String[] args) throws Exception {
-		String userFile = null;
-		if (args.length == 3)
-			userFile = args[2];
-		new Validate(args[0], args[1], userFile);
-//		.run();
-	}
-
-	ExecutorService exec = Executors.newFixedThreadPool(50);
-	Semaphore max = new Semaphore(100);
 
 	private void run() throws InterruptedException {
 

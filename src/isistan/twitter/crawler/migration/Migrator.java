@@ -1,13 +1,13 @@
 package isistan.twitter.crawler.migration;
 
-import isistan.twitter.crawler.ListType;
-import isistan.twitter.crawler.TweetType;
+import isistan.twitter.crawler.adjacency.ListType;
 import isistan.twitter.crawler.folder.CrawlFolder;
 import isistan.twitter.crawler.folder.UserFolder;
+import isistan.twitter.crawler.info.UserInfo;
+import isistan.twitter.crawler.store.TwitterStore;
 import isistan.twitter.crawler.store.bigtext.BigTextStore;
-import isistan.twitter.crawler.store.h2.TwitterStore;
-import isistan.twitter.crawler.store.h2.UserInfo;
-import isistan.twitterapi.util.StoreUtil;
+import isistan.twitter.crawler.tweet.TweetType;
+import isistan.twitter.crawler.util.StoreUtil;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -31,31 +31,21 @@ import java.util.concurrent.TimeUnit;
 import com.google.common.io.Files;
 
 public class Migrator {
+	public static void main(String[] args) throws Exception {
+		new Migrator(args[0], args[1], args.length == 3 ? args[2] : null).run();
+	}
 	private static final int MAX_THREADS = 10;
 	private static final int MAX_SUB_THREADS = 20;
 	private static final int MAX_QUEUED_THREADS = 10;
-	private static final int COMPACT_SIZE = 100000;
 
+	private static final int COMPACT_SIZE = 100000;
 	ExecutorService TweetsExecutor = createExec("Tweet");
 	ExecutorService FavsExecutor = createExec("Favs");
 	ExecutorService FolloweesExecutor = createExec("Followees");
 	ExecutorService FollowersExecutor = createExec("Followers");
 	ExecutorService InfoExecutor = createExec("Info");
+
 	ExecutorService StatusExecutor = createExec("Status");
-
-	private ExecutorService createExec(final String name) {
-		return Executors.newFixedThreadPool(MAX_SUB_THREADS,
-				new ThreadFactory() {
-
-					@Override
-					public Thread newThread(Runnable r) {
-						ThreadFactory tf = Executors.defaultThreadFactory();
-						Thread t = tf.newThread(r);
-						t.setName("User Converter Thread for " + name);
-						return t;
-					}
-				});
-	}
 
 	long plainSizeOnDisk = 0;
 	long followeeSize = 0;
@@ -94,6 +84,20 @@ public class Migrator {
 				lastUser = Long.valueOf(prop.getProperty("last"));
 			}
 		}
+	}
+
+	private ExecutorService createExec(final String name) {
+		return Executors.newFixedThreadPool(MAX_SUB_THREADS,
+				new ThreadFactory() {
+
+					@Override
+					public Thread newThread(Runnable r) {
+						ThreadFactory tf = Executors.defaultThreadFactory();
+						Thread t = tf.newThread(r);
+						t.setName("User Converter Thread for " + name);
+						return t;
+					}
+				});
 	}
 
 	private void run() throws Exception {
@@ -227,84 +231,6 @@ public class Migrator {
 
 	}
 
-	private synchronized void saveLastMigrated(Long long1) {
-		prop.put("last", new Long(long1).toString());
-		try {
-			File file = new File(propFile.getPath() + ".new");
-			FileWriter fileWriter = new FileWriter(file);
-			prop.store(fileWriter, "");
-			fileWriter.flush();
-			fileWriter.close();
-			Files.move(file, propFile);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-
-	protected void saveStatus(final Long user, final File userStatus,
-			final Semaphore sem) {
-		StatusExecutor.execute(new Runnable() {
-
-			@Override
-			public void run() {
-				try {
-					// if (!store.hasStatus(user)) {
-					Properties prop = new Properties();
-					prop.load(new FileInputStream(userStatus.getPath() + "/"
-							+ user + ".prop"));
-					Map<String, String> map = new HashMap<>();
-					for (Entry<Object, Object> e : prop.entrySet()) {
-						map.put(e.getKey().toString(), e.getValue().toString());
-					}
-					store.saveUserStatus(user, map, skipChecking);
-					// }
-				} catch (Exception e) {
-					e.printStackTrace();
-					System.out.println(e.getClass() + ":" + e.getMessage()
-							+ ":" + e.getCause());
-				} finally {
-					sem.release();
-				}
-
-			}
-		});
-
-	}
-
-	public static void main(String[] args) throws Exception {
-		new Migrator(args[0], args[1], args.length == 3 ? args[2] : null).run();
-	}
-
-	private void saveInfo(final UserFolder userFolder, final Semaphore sem) {
-		InfoExecutor.execute(new Runnable() {
-
-			@Override
-			public void run() {
-				try {
-					// if (!store.hasInfo(userFolder.getUser())) {
-					UserInfo info = StoreUtil.toInfo(userFolder.getInfo());
-					if (info == null)
-						// System.out.println("Info for user "
-						// + userFolder.getUser()
-						// + " not found or badly parsed.");
-						;
-					else {
-
-						store.saveUserInfo(info, skipChecking);
-					}
-					// }
-				} catch (Exception e) {
-					e.printStackTrace();
-					System.out.println("Exception storing INFO ("
-							+ userFolder.getUser() + "): " + e.getClass() + ":"
-							+ e.getMessage() + ":" + e.getCause());
-				}
-				sem.release();
-			}
-		});
-
-	}
-
 	private void saveAdjacency(final UserFolder userFolder, final Semaphore sem) {
 		FolloweesExecutor.execute(new Runnable() {
 
@@ -348,6 +274,80 @@ public class Migrator {
 							+ e.getMessage() + ":" + e.getCause());
 				}
 				sem.release();
+			}
+		});
+
+	}
+
+	private void saveInfo(final UserFolder userFolder, final Semaphore sem) {
+		InfoExecutor.execute(new Runnable() {
+
+			@Override
+			public void run() {
+				try {
+					// if (!store.hasInfo(userFolder.getUser())) {
+					UserInfo info = StoreUtil.toInfo(userFolder.getInfo());
+					if (info == null)
+						// System.out.println("Info for user "
+						// + userFolder.getUser()
+						// + " not found or badly parsed.");
+						;
+					else {
+
+						store.saveUserInfo(info, skipChecking);
+					}
+					// }
+				} catch (Exception e) {
+					e.printStackTrace();
+					System.out.println("Exception storing INFO ("
+							+ userFolder.getUser() + "): " + e.getClass() + ":"
+							+ e.getMessage() + ":" + e.getCause());
+				}
+				sem.release();
+			}
+		});
+
+	}
+
+	private synchronized void saveLastMigrated(Long long1) {
+		prop.put("last", new Long(long1).toString());
+		try {
+			File file = new File(propFile.getPath() + ".new");
+			FileWriter fileWriter = new FileWriter(file);
+			prop.store(fileWriter, "");
+			fileWriter.flush();
+			fileWriter.close();
+			Files.move(file, propFile);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	protected void saveStatus(final Long user, final File userStatus,
+			final Semaphore sem) {
+		StatusExecutor.execute(new Runnable() {
+
+			@Override
+			public void run() {
+				try {
+					// if (!store.hasStatus(user)) {
+					Properties prop = new Properties();
+					prop.load(new FileInputStream(userStatus.getPath() + "/"
+							+ user + ".prop"));
+					Map<String, String> map = new HashMap<>();
+					for (Entry<Object, Object> e : prop.entrySet()) {
+						map.put(e.getKey().toString(), e.getValue().toString());
+					}
+					store.saveUserStatus(user, map, skipChecking);
+					// }
+				} catch (Exception e) {
+					e.printStackTrace();
+					System.out.println(e.getClass() + ":" + e.getMessage()
+							+ ":" + e.getCause());
+				} finally {
+					sem.release();
+				}
+
 			}
 		});
 

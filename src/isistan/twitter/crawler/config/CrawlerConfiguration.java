@@ -1,13 +1,11 @@
 package isistan.twitter.crawler.config;
 
-import isistan.twitter.crawler.CrawlerUtil;
-import isistan.twitter.crawler.CrawlerUtil.UserIterator;
+import isistan.twitter.crawler.request.RequestType;
+import isistan.twitter.crawler.store.DBCrawlerStore;
 import isistan.twitter.crawler.store.TwitterCrawlerStore;
 import isistan.twitter.crawler.store.bigtext.BigTextStore;
-import isistan.twitter.crawler.store.h2.DBCrawlerStore;
-import isistan.twitter.crawler.store.h2.H2Store;
-import isistan.twitter.crawler.store.plain.PlainTextStore;
-import isistan.twitterapi.RequestType;
+import isistan.twitter.crawler.util.CrawlerUtil;
+import isistan.twitter.crawler.util.CrawlerUtil.UserIterator;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -22,17 +20,26 @@ import org.apache.log4j.Logger;
 
 public class CrawlerConfiguration {
 
+	public static CrawlerConfiguration create(Properties config)
+			throws Exception {
+		return current = new CrawlerConfiguration(config);
+	}
+
+	public static CrawlerConfiguration getCurrent() {
+		return current;
+	}
+
 	public static final int MAX_TRIES_BEFORE_DISCARD_ACCOUNT = 2;
 
 	public static final int TIME_IF_SUSPENDED = 150;
 
 	public static final int MIN_WAIT_TO_NEXT_REQUEST = 60;
 
+	// Claves del property
+
 	public static final Integer MIN_TWEETS = 10;
 
 	public static final Integer MIN_FOLLOWEES = 10;
-
-	// Claves del property
 
 	public static final String CONFIGDIR = "configdir";
 
@@ -49,15 +56,6 @@ public class CrawlerConfiguration {
 	private static final String STORE = "store";
 
 	private static CrawlerConfiguration current = null;
-
-	public static CrawlerConfiguration create(Properties config)
-			throws Exception {
-		return current = new CrawlerConfiguration(config);
-	}
-
-	public static CrawlerConfiguration getCurrent() {
-		return current;
-	}
 
 	private int numAccounts;
 
@@ -99,20 +97,8 @@ public class CrawlerConfiguration {
 		crawlDir = new File(outputdir + "/crawl");
 		crawlstatus = new File(outputdir + "/crawl-status");
 
-		String storeType = config.getProperty(STORE);
-		if (storeType == null)
-			storeType = "bigstore";
-
-		if (storeType.equals("plain")) {
-			store = new PlainTextStore();
-		} else if (storeType.equals("h2")) {
-			H2Store h2 = new H2Store(new File(outputdir));
-			store = new DBCrawlerStore(h2, outputdir);
-		} else if (storeType.equals("bigstore")) {
-			BigTextStore bt = new BigTextStore(new File(outputdir));
-			store = new CrawlerStore(bt, outputdir);
-		}
-
+		BigTextStore bt = new BigTextStore(new File(outputdir));
+		store = new CrawlerStore(bt, outputdir);
 		oauthdirs = new ArrayList<File>();
 
 		for (String s : config.getProperty(OAUTHDIR).split(",")) {
@@ -126,22 +112,10 @@ public class CrawlerConfiguration {
 		if (config.getProperty("crawlOnlyFollowees") != null)
 			crawlOnlyFollowees = new Boolean(
 					config.getProperty("crawlOnlyFollowees"));
-
-		// if (!crawlDir.exists()) {
-		// log.info("Creating Crawl directory");
-		// crawlDir.mkdir();
-		// }
-		//
-		// if (!crawlstatus.exists()) {
-		// log.info("Creating Crawl Status directory");
-		// crawlstatus.mkdir();
-		// }
-
 		for (File oauthdir : oauthdirs) {
 			if (oauthdir.isDirectory() && oauthdir.exists()) {
 				for (File f : oauthdir.listFiles()) {
 					if (f.isFile()) {
-						// Twitter t = TwitterOauthBuilder.build();
 						accountPool.add(new Account(f));
 					}
 				}
@@ -164,88 +138,8 @@ public class CrawlerConfiguration {
 			minimumAlreadyCrawled.add(latestCrawled);
 	}
 
-	public UserIterator getUsers() {
-		return users;
-	}
-
-	public HashMap<Account, Integer> getFailures() {
-		return failures;
-	}
-
-	public String getUserListFile() {
-		return userListFile;
-	}
-
-	public Long getLatestCrawled() {
-		return latestCrawled;
-	}
-
-	public String getOutputdir() {
-		return outputdir;
-	}
-
-	public File getCrawlstatus() {
-		return crawlstatus;
-	}
-
-	public int getMaxThreads() {
-		return max_threads;
-	}
-
-	public File getCrawlDir() {
-		return crawlDir;
-	}
-
-	public List<File> getOauthdirs() {
-		return oauthdirs;
-	}
-
-	public boolean isCrawlOnlyFollowees() {
-		return crawlOnlyFollowees;
-	}
-
-	public boolean mustRecrawlInfo() {
-		return recrawlInfo;
-	}
-
-	public void updateLatestCrawled(final long user) {
-		synchronized (minimumAlreadyCrawled) {
-			long latest = user;
-			minimumAlreadyCrawled.add(user);
-			long next = minimumAlreadyCrawled.first() + 1;
-			while (minimumAlreadyCrawled.size() > 1
-					&& minimumAlreadyCrawled.contains(next)) {
-				minimumAlreadyCrawled.remove(minimumAlreadyCrawled.first());
-				latest = next;
-				next++;
-			}
-			try {
-				store.updateLatestCrawled(user);
-
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-	}
-
-	public String getUserPropertiesPath(long u) {
-		return crawlstatus.getPath() + "/" + u + ".prop";
-	}
-
-	public int getNumAccounts() {
-		return numAccounts;
-	}
-
-	public String getUserCrawlDir(long u) {
-		return crawlDir + "/" + u;
-	}
-
-	public int getMinTweetsToFilter() {
-		return MIN_TWEETS;
-	}
-
-	public int getMinFolloweesToFilter() {
-		return MIN_FOLLOWEES;
+	public synchronized void discardAccount(Account current2) {
+		accountPool.remove(current2);
 	}
 
 	public synchronized Account getAccount(final RequestType reqType) {
@@ -273,12 +167,80 @@ public class CrawlerConfiguration {
 		}
 	}
 
-	public synchronized void discardAccount(Account current2) {
-		accountPool.remove(current2);
-	}
-
 	public int getAccountSize() {
 		return accountPool.size();
+	}
+
+	public File getCrawlDir() {
+		return crawlDir;
+	}
+
+	public File getCrawlstatus() {
+		return crawlstatus;
+	}
+
+	public HashMap<Account, Integer> getFailures() {
+		return failures;
+	}
+
+	public Long getLatestCrawled() {
+		return latestCrawled;
+	}
+
+	public int getMaxThreads() {
+		return max_threads;
+	}
+
+	public int getMinFolloweesToFilter() {
+		return MIN_FOLLOWEES;
+	}
+
+	public int getMinTweetsToFilter() {
+		return MIN_TWEETS;
+	}
+
+	public int getNumAccounts() {
+		return numAccounts;
+	}
+
+	public List<File> getOauthdirs() {
+		return oauthdirs;
+	}
+
+	public String getOutputdir() {
+		return outputdir;
+	}
+
+	public TwitterCrawlerStore getStore() {
+		return store;
+	}
+
+	public synchronized long getTime(Account current2, RequestType reqType) {
+		return current2.getTime(reqType);
+	}
+
+	public String getUserCrawlDir(long u) {
+		return crawlDir + "/" + u;
+	}
+
+	public String getUserListFile() {
+		return userListFile;
+	}
+
+	public String getUserPropertiesPath(long u) {
+		return crawlstatus.getPath() + "/" + u + ".prop";
+	}
+
+	public UserIterator getUsers() {
+		return users;
+	}
+
+	public boolean isCrawlOnlyFollowees() {
+		return crawlOnlyFollowees;
+	}
+
+	public boolean mustRecrawlInfo() {
+		return recrawlInfo;
 	}
 
 	public synchronized void release(Account current2, RequestType reqType) {
@@ -290,11 +252,23 @@ public class CrawlerConfiguration {
 		current2.setTime(reqType, l);
 	}
 
-	public synchronized long getTime(Account current2, RequestType reqType) {
-		return current2.getTime(reqType);
-	}
+	public void updateLatestCrawled(final long user) {
+		synchronized (minimumAlreadyCrawled) {
+			long latest = user;
+			minimumAlreadyCrawled.add(user);
+			long next = minimumAlreadyCrawled.first() + 1;
+			while (minimumAlreadyCrawled.size() > 1
+					&& minimumAlreadyCrawled.contains(next)) {
+				minimumAlreadyCrawled.remove(minimumAlreadyCrawled.first());
+				latest = next;
+				next++;
+			}
+			try {
+				store.updateLatestCrawled(user);
 
-	public TwitterCrawlerStore getStore() {
-		return store;
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
 	}
 }

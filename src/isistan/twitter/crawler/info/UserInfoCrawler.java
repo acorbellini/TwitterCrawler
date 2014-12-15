@@ -1,23 +1,14 @@
 package isistan.twitter.crawler.info;
 
-import isistan.twitter.crawler.CrawlerUtil;
 import isistan.twitter.crawler.config.CrawlerConfiguration;
+import isistan.twitter.crawler.request.RequestType;
+import isistan.twitter.crawler.request.TwitterCrawlerRequest;
 import isistan.twitter.crawler.status.UserStatus;
 import isistan.twitter.crawler.store.TwitterCrawlerStore;
-import isistan.twitterapi.RequestType;
-import isistan.twitterapi.TwitterCrawlerRequest;
-import isistan.twitterapi.UserInfo;
-
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import isistan.twitter.crawler.util.CrawlerUtil;
 
 import org.apache.log4j.Logger;
 
-import twitter4j.ResponseList;
 import twitter4j.Twitter;
 import twitter4j.TwitterException;
 import twitter4j.User;
@@ -43,13 +34,13 @@ public class UserInfoCrawler {
 			}
 
 			@Override
-			public String toString() {
-				return "UserInfo - User: " + u;
+			public RequestType getReqType() {
+				return RequestType.INFO;
 			}
 
 			@Override
-			public RequestType getReqType() {
-				return RequestType.INFO;
+			public String toString() {
+				return "UserInfo - User: " + u;
 			}
 		});
 

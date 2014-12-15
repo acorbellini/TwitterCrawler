@@ -1,8 +1,7 @@
 package isistan.twitter.crawler.folder;
 
 import isistan.def.utils.table.CSVBuilder;
-import isistan.twitter.mysqldump.UsersTable;
-import isistan.twitter.mysqldump.UsersTable.User;
+import isistan.twitter.crawler.folder.UsersTable.User;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
@@ -13,65 +12,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 
 public class UserFolder {
-
-	private String uf;
-
-	private long user;
-
-	private User userTables;
-
-	public UserFolder(long u, String uf) {
-		this.uf = uf;
-		this.setUser(u);
-		this.userTables = UsersTable.getUser(u);
-	}
-
-	public File getTweets() {
-		return new File(uf + "/" + getUser() + "-TWEETS.dat");
-
-	}
-
-	public File getFavs() {
-		return new File(uf + "/" + getUser() + "-FAVORITES.dat");
-	}
-
-	private CSVBuilder getTweetBuilder(String type) {
-		CSVBuilder builder = new CSVBuilder(new File(uf + "/" + getUser() + "-"
-				+ type + ".dat"));
-		builder.setExpectedFields(24);
-		builder.setReplaceString("GeoLocation;@", "");
-		builder.setReplaceString("&#114;", "r");
-		builder.setReplaceString("&#105;", "i");
-		builder.setReplaceString("&#111;", "o");
-		builder.setReplaceString("&#116;", "e");
-		return builder;
-	}
-
-	public File getInfo() {
-		return new File(uf + "/" + getUser() + "-info.dat");
-	}
-
-	public Long getUser() {
-		return user;
-	}
-
-	public void setUser(long user) {
-		this.user = user;
-	}
-
-	public int getTweetSize() throws IOException {
-		File t = getTweets();
-		if (t.exists())
-			return countLines(t);
-		return 0;
-	}
-
-	public int getFavsSize() throws IOException {
-		File t = getFavs();
-		if (t.exists())
-			return countLines(t);
-		return 0;
-	}
 
 	public static int countLines(File filename) throws IOException {
 		InputStream is = new BufferedInputStream(new FileInputStream(filename),
@@ -127,15 +67,27 @@ public class UserFolder {
 
 	}
 
-	public int getTweetsProcessed() throws IOException {
-		File t = getProcessedTweets();
+	private String uf;
+
+	private long user;
+
+	private User userTables;
+
+	public UserFolder(long u, String uf) {
+		this.uf = uf;
+		this.setUser(u);
+		this.userTables = UsersTable.getUser(u);
+	}
+
+	public File getFavs() {
+		return new File(uf + "/" + getUser() + "-FAVORITES.dat");
+	}
+
+	public int getFavsSize() throws IOException {
+		File t = getFavs();
 		if (t.exists())
 			return countLines(t);
 		return 0;
-	}
-
-	private File getProcessedTweets() {
-		return new File(uf + "/" + getUser() + "-TWEETS-EN-PROC.dat");
 	}
 
 	public File getFollowees() {
@@ -144,5 +96,52 @@ public class UserFolder {
 
 	public File getFollowers() {
 		return new File(uf + "/" + getUser() + "-FOLLOWERS.dat");
+	}
+
+	public File getInfo() {
+		return new File(uf + "/" + getUser() + "-info.dat");
+	}
+
+	private File getProcessedTweets() {
+		return new File(uf + "/" + getUser() + "-TWEETS-EN-PROC.dat");
+	}
+
+	private CSVBuilder getTweetBuilder(String type) {
+		CSVBuilder builder = new CSVBuilder(new File(uf + "/" + getUser() + "-"
+				+ type + ".dat"));
+		builder.setExpectedFields(24);
+		builder.setReplaceString("GeoLocation;@", "");
+		builder.setReplaceString("&#114;", "r");
+		builder.setReplaceString("&#105;", "i");
+		builder.setReplaceString("&#111;", "o");
+		builder.setReplaceString("&#116;", "e");
+		return builder;
+	}
+
+	public File getTweets() {
+		return new File(uf + "/" + getUser() + "-TWEETS.dat");
+
+	}
+
+	public int getTweetSize() throws IOException {
+		File t = getTweets();
+		if (t.exists())
+			return countLines(t);
+		return 0;
+	}
+
+	public int getTweetsProcessed() throws IOException {
+		File t = getProcessedTweets();
+		if (t.exists())
+			return countLines(t);
+		return 0;
+	}
+
+	public Long getUser() {
+		return user;
+	}
+
+	public void setUser(long user) {
+		this.user = user;
 	}
 }
