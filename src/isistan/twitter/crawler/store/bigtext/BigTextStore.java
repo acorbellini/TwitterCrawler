@@ -3,7 +3,6 @@ package isistan.twitter.crawler.store.bigtext;
 import gnu.trove.list.array.TLongArrayList;
 import isistan.twitter.crawler.adjacency.ListType;
 import isistan.twitter.crawler.info.UserInfo;
-import isistan.twitter.crawler.store.TwitterStore;
 import isistan.twitter.crawler.tweet.Tweet;
 import isistan.twitter.crawler.tweet.TweetType;
 import isistan.twitter.crawler.util.ListReader;

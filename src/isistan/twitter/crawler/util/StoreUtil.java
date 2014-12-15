@@ -1,10 +1,6 @@
 package isistan.twitter.crawler.util;
 
 import gnu.trove.list.array.TLongArrayList;
-import isistan.def.utils.table.CSVBuilder;
-import isistan.def.utils.table.CSVReader;
-import isistan.def.utils.table.Table;
-import isistan.def.utils.table.ValueCell;
 import isistan.twitter.crawler.info.UserInfo;
 import isistan.twitter.crawler.tweet.Tweet;
 
@@ -22,6 +18,10 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 import edu.jlime.util.ByteBuffer;
+import edu.jlime.util.table.CSVBuilder;
+import edu.jlime.util.table.CSVReader;
+import edu.jlime.util.table.Table;
+import edu.jlime.util.table.ValueCell;
 
 public class StoreUtil {
 	public static Tweet byteArrayToTweet(byte[] byteArray) {

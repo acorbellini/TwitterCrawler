@@ -1,6 +1,5 @@
 package isistan.twitter.crawler.folder;
 
-import isistan.def.utils.table.CSVBuilder;
 import isistan.twitter.crawler.folder.UsersTable.User;
 
 import java.io.BufferedInputStream;
@@ -10,6 +9,8 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+
+import edu.jlime.util.table.CSVBuilder;
 
 public class UserFolder {
 

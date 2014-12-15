@@ -1,7 +1,7 @@
 package isistan.twitter.crawler.status;
 
-import isistan.twitter.crawler.adjacency.UserAdjacencyListCrawler;
 import isistan.twitter.crawler.adjacency.ListType;
+import isistan.twitter.crawler.adjacency.UserAdjacencyListCrawler;
 import isistan.twitter.crawler.info.UserInfoCrawler;
 import isistan.twitter.crawler.tweet.TweetType;
 import isistan.twitter.crawler.tweet.UserTweetsCrawler;

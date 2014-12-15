@@ -1,12 +1,12 @@
 package isistan.twitter.crawler.stats;
 
+import edu.jlime.util.DataTypeUtils;
+import edu.jlime.util.table.CSVBuilder;
+import edu.jlime.util.table.CSVReader;
 import gnu.trove.iterator.TIntIntIterator;
 import gnu.trove.iterator.TLongIntIterator;
 import gnu.trove.map.hash.TIntIntHashMap;
 import gnu.trove.map.hash.TLongIntHashMap;
-import isistan.def.utils.DataTypeUtils;
-import isistan.def.utils.table.CSVBuilder;
-import isistan.def.utils.table.CSVReader;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;

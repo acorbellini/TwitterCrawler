@@ -5,7 +5,6 @@ import isistan.twitter.crawler.adjacency.ListType;
 import isistan.twitter.crawler.folder.CrawlFolder;
 import isistan.twitter.crawler.folder.UserFolder;
 import isistan.twitter.crawler.info.UserInfo;
-import isistan.twitter.crawler.store.TwitterStore;
 import isistan.twitter.crawler.store.bigtext.BigTextStore;
 import isistan.twitter.crawler.tweet.Tweet;
 import isistan.twitter.crawler.tweet.TweetType;

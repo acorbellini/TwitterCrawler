@@ -1,10 +1,5 @@
 package isistan.twitter.crawler.util;
 
-import isistan.def.utils.table.CSVBuilder;
-import isistan.def.utils.table.Cell;
-import isistan.def.utils.table.Col;
-import isistan.def.utils.table.Row;
-import isistan.def.utils.table.Table;
 import isistan.twitter.crawler.textcat.TextCategorizer;
 
 import java.io.BufferedWriter;
@@ -16,10 +11,19 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import edu.jlime.util.table.CSVBuilder;
+import edu.jlime.util.table.Cell;
+import edu.jlime.util.table.Col;
+import edu.jlime.util.table.Row;
+import edu.jlime.util.table.Table;
+
 public class LangFiltering {
 
 	public static String getLang(File info) throws Exception {
-		Table t = Table.readCSV(info, ";", ",");
+		CSVBuilder builder = new CSVBuilder(info);
+		builder.setColumnSep(";");
+		builder.setDecimalSep(",");
+		Table t = builder.toTable();
 		if (!t.isEmpty()) {
 			Row row = t.getRow(1);
 			while (t.getRowLimit() >= 3) {
