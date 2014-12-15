@@ -28,7 +28,7 @@ import edu.jlime.util.ByteBuffer;
 import edu.jlime.util.DataTypeUtils;
 import edu.jlime.util.compression.CompressionType;
 
-public class BigTextStore implements TwitterStore {
+public class BigTextStore {
 
 	// private boolean loadMode = true;
 
@@ -82,7 +82,6 @@ public class BigTextStore implements TwitterStore {
 						"adj" });
 	}
 
-	@Override
 	public void close() throws Exception {
 		tweets_file.compact();
 		tweets_file.close();
@@ -98,7 +97,6 @@ public class BigTextStore implements TwitterStore {
 		status_file.close();
 	}
 
-	@Override
 	public void commit() throws Exception {
 		tweets_file.compact();
 
@@ -113,7 +111,6 @@ public class BigTextStore implements TwitterStore {
 		status_file.compact();
 	}
 
-	@Override
 	public void compactTweets(long user, TweetType tweets) throws Exception {
 	}
 
@@ -129,7 +126,6 @@ public class BigTextStore implements TwitterStore {
 						.setCompressed(CompressionType.BZIP.getComp()));
 	}
 
-	@Override
 	public long[] getAdjacency(Long user, ListType type) throws Exception {
 		Iterator<Pair<byte[], byte[]>> it = null;
 		if (type.equals(ListType.FOLLOWEES)) {
@@ -161,12 +157,10 @@ public class BigTextStore implements TwitterStore {
 		return adj.toArray();
 	}
 
-	@Override
 	public Long getLatestCrawled() throws Exception {
 		return null;
 	}
 
-	@Override
 	public List<Tweet> getTweets(long user, TweetType type) throws Exception {
 		Iterator<Pair<byte[], byte[]>> it = null;
 		if (type.equals(TweetType.TWEETS)) {
@@ -190,7 +184,6 @@ public class BigTextStore implements TwitterStore {
 		return tweets;
 	}
 
-	@Override
 	public UserInfo getUserInfo(Long user) throws Exception {
 		Record rec = uinfo_key_format.newRecord().set("uid", user);
 		byte[] val = uinfo_file.get(rec.toByteArray());
@@ -199,7 +192,6 @@ public class BigTextStore implements TwitterStore {
 		return StoreUtil.bytesToUserInfo(val);
 	}
 
-	@Override
 	public Map<String, String> getUserStatus(Long user) throws Exception {
 		Record rec = status_key_format.newRecord().set("uid", user);
 		byte[] stat = status_file.get(rec.toByteArray());
@@ -209,12 +201,10 @@ public class BigTextStore implements TwitterStore {
 		return def.getMap();
 	}
 
-	@Override
 	public String getUserStatus(String k, long user) throws Exception {
 		return null;
 	}
 
-	@Override
 	public boolean hasAdjacency(Long user, ListType t) throws Exception {
 		if (t.equals(ListType.FOLLOWEES)) {
 			Record rec = followees_key_format.newRecord().set("uid", user);
@@ -226,19 +216,16 @@ public class BigTextStore implements TwitterStore {
 		return false;
 	}
 
-	@Override
 	public boolean hasInfo(Long user) throws Exception {
 		Record rec = uinfo_key_format.newRecord().set("uid", user);
 		return uinfo_file.contains(rec.toByteArray());
 	}
 
-	@Override
 	public boolean hasStatus(Long user) throws Exception {
 		Record rec = status_key_format.newRecord().set("uid", user);
 		return status_file.contains(rec.toByteArray());
 	}
 
-	@Override
 	public boolean hasTweets(Long user, TweetType type) throws Exception {
 		Iterator<Pair<byte[], byte[]>> it = null;
 		if (type.equals(TweetType.TWEETS)) {
@@ -263,7 +250,6 @@ public class BigTextStore implements TwitterStore {
 				new String[] { "uid" });
 	}
 
-	@Override
 	public void saveAdjacency(Long user, ListType type, ListReader listReader,
 			boolean skipCheck) throws Exception {
 		while (listReader.hasNext()) {
@@ -287,7 +273,6 @@ public class BigTextStore implements TwitterStore {
 		}
 	}
 
-	@Override
 	public void saveCompactedTweets(Long user, TweetType type,
 			TweetReader tweetReader, boolean skipCheck) throws Exception {
 		while (tweetReader.hasNext()) {
@@ -296,7 +281,6 @@ public class BigTextStore implements TwitterStore {
 		}
 	}
 
-	@Override
 	public void saveLatestCrawled(long user) throws Exception {
 	}
 
@@ -315,13 +299,11 @@ public class BigTextStore implements TwitterStore {
 		}
 	}
 
-	@Override
 	public void saveTweets(long user, TweetType type, List<Tweet> tweets)
 			throws Exception {
 
 	}
 
-	@Override
 	public void saveUserInfo(UserInfo info, boolean skipCheck) throws Exception {
 		byte[] rec = uinfo_key_format.newRecord().set("uid", info.uid)
 				.toByteArray();
@@ -329,7 +311,6 @@ public class BigTextStore implements TwitterStore {
 			uinfo_file.put(rec, StoreUtil.userInfoToBytes(info));
 	}
 
-	@Override
 	public void saveUserStatus(long user, Map<String, String> map,
 			boolean skipCheck) throws Exception {
 		Record rec = status_key_format.newRecord().set("uid", user);
@@ -340,7 +321,6 @@ public class BigTextStore implements TwitterStore {
 			status_file.put(byteArray, buffer.build());
 	}
 
-	@Override
 	public void setUserStatus(String k, String v, long user) throws Exception {
 	}
 

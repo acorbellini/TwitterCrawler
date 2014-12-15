@@ -1,8 +1,7 @@
 package isistan.twitter.crawler.config;
 
 import isistan.twitter.crawler.request.RequestType;
-import isistan.twitter.crawler.store.DBCrawlerStore;
-import isistan.twitter.crawler.store.TwitterCrawlerStore;
+import isistan.twitter.crawler.store.CrawlerStore;
 import isistan.twitter.crawler.store.bigtext.BigTextStore;
 import isistan.twitter.crawler.util.CrawlerUtil;
 import isistan.twitter.crawler.util.CrawlerUtil.UserIterator;
@@ -87,7 +86,7 @@ public class CrawlerConfiguration {
 
 	private Properties ltProp;
 
-	private TwitterCrawlerStore store;
+	private CrawlerStore store;
 
 	private Long latestCrawled;
 
@@ -211,7 +210,7 @@ public class CrawlerConfiguration {
 		return outputdir;
 	}
 
-	public TwitterCrawlerStore getStore() {
+	public CrawlerStore getStore() {
 		return store;
 	}
 

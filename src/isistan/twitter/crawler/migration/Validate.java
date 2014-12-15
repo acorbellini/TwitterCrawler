@@ -29,15 +29,17 @@ public class Validate {
 		if (args.length == 3)
 			userFile = args[2];
 		new Validate(args[0], args[1], userFile);
-//		.run();
+		// .run();
 	}
+
 	private CrawlFolder folder;
 
-	private TwitterStore store;
+	private BigTextStore store;
 
 	ExecutorService exec = Executors.newFixedThreadPool(50);
 
 	Semaphore max = new Semaphore(100);
+
 	public Validate(String folder, String db, String userFile) throws Exception {
 		if (userFile == null)
 			this.folder = new CrawlFolder(folder);
@@ -54,9 +56,9 @@ public class Validate {
 		int start = 1000000;
 		long lastTime = System.currentTimeMillis();
 		for (UserFolder userFolder : folder) {
-			if(cont++<start)
+			if (cont++ < start)
 				continue;
-			if (cont+1 % 1000 == 0) {
+			if (cont + 1 % 1000 == 0) {
 				System.out.println("Current count " + cont + " Rate " + 1000
 						/ ((System.currentTimeMillis() - lastTime) / 1000));
 				lastTime = System.currentTimeMillis();

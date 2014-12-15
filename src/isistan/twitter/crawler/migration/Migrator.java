@@ -34,6 +34,7 @@ public class Migrator {
 	public static void main(String[] args) throws Exception {
 		new Migrator(args[0], args[1], args.length == 3 ? args[2] : null).run();
 	}
+
 	private static final int MAX_THREADS = 10;
 	private static final int MAX_SUB_THREADS = 20;
 	private static final int MAX_QUEUED_THREADS = 10;
@@ -51,7 +52,7 @@ public class Migrator {
 	long followeeSize = 0;
 	long followerSize = 0;
 
-	TwitterStore store;
+	BigTextStore store;
 	CrawlFolder folder;
 
 	private File statusDir;
@@ -124,7 +125,7 @@ public class Migrator {
 			boolean found = false;
 
 			long rateTime = System.currentTimeMillis();
-			
+
 			for (final UserFolder userFolder : folder) {
 				if (userFolder.getUser().equals(lastUser)) {
 					found = true;

@@ -3,7 +3,7 @@ package isistan.twitter.crawler.adjacency;
 import isistan.twitter.crawler.config.CrawlerConfiguration;
 import isistan.twitter.crawler.request.GetFriendsRequest;
 import isistan.twitter.crawler.status.UserStatus;
-import isistan.twitter.crawler.store.TwitterCrawlerStore;
+import isistan.twitter.crawler.store.CrawlerStore;
 import isistan.twitter.crawler.util.CrawlerUtil;
 
 import org.apache.log4j.Logger;
@@ -53,7 +53,7 @@ public class AdjacencyListCrawler {
 					+ " on cursor " + next);
 		}
 
-		TwitterCrawlerStore store = config.getStore();
+		CrawlerStore store = config.getStore();
 		IDs ids = null;
 		do {
 			ids = CrawlerUtil.get(new GetFriendsRequest(type, u, next));
