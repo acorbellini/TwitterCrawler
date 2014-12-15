@@ -5,6 +5,7 @@ import isistan.def.utils.table.Cell;
 import isistan.def.utils.table.Col;
 import isistan.def.utils.table.Row;
 import isistan.def.utils.table.Table;
+import isistan.twitter.crawler.textcat.TextCategorizer;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -14,8 +15,6 @@ import java.util.Scanner;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-
-import utils.textcat.TextCategorizer;
 
 public class LangFiltering {
 

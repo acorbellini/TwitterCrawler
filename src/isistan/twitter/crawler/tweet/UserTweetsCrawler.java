@@ -5,6 +5,7 @@ import isistan.twitter.crawler.request.RequestType;
 import isistan.twitter.crawler.request.TwitterCrawlerRequest;
 import isistan.twitter.crawler.status.UserStatus;
 import isistan.twitter.crawler.store.CrawlerStore;
+import isistan.twitter.crawler.textcat.TextCategorizer;
 import isistan.twitter.crawler.util.CrawlerUtil;
 
 import org.apache.log4j.Logger;
@@ -13,7 +14,6 @@ import twitter4j.Paging;
 import twitter4j.ResponseList;
 import twitter4j.Status;
 import twitter4j.Twitter;
-import utils.textcat.TextCategorizer;
 
 public class UserTweetsCrawler {
 
@@ -54,7 +54,7 @@ public class UserTweetsCrawler {
 
 		CrawlerStore store = config.getStore();
 		if (status.has("Page-" + type)) {
-			page = Integer.valueOf(status.get("Page-" + type));
+			page = Integer.valueOf(status.get("Page-" + type)) + 1;
 			log.info("Resuming tweet crawling(" + type + ") for " + user
 					+ " on page " + page);
 		} else {
@@ -72,7 +72,7 @@ public class UserTweetsCrawler {
 
 		ResponseList<Status> stats = null;
 		do {
-			final Paging paging = new Paging(page++, 200);
+			final Paging paging = new Paging(page, 200);
 
 			stats = CrawlerUtil
 					.get(new TwitterCrawlerRequest<ResponseList<Status>>() {
@@ -121,6 +121,8 @@ public class UserTweetsCrawler {
 				store.writeTweets(user, type, stats);
 			}
 			status.set("Page-" + type, Integer.valueOf(page).toString());
+			
+			page++;
 		} while (stats != null && !stats.isEmpty());
 		store.finishedTweets(user, type);
 	}
