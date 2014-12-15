@@ -1,6 +1,6 @@
 package isistan.twitter.crawler.status;
 
-import isistan.twitter.crawler.adjacency.AdjacencyListCrawler;
+import isistan.twitter.crawler.adjacency.UserAdjacencyListCrawler;
 import isistan.twitter.crawler.adjacency.ListType;
 import isistan.twitter.crawler.info.UserInfoCrawler;
 import isistan.twitter.crawler.tweet.TweetType;
@@ -20,12 +20,12 @@ public abstract class UserStatus {
 		return new UserTweetsCrawler(this, user, TweetType.FAVORITES);
 	}
 
-	public AdjacencyListCrawler getFolloweeCrawler() {
-		return new AdjacencyListCrawler(this, user, ListType.FOLLOWEES);
+	public UserAdjacencyListCrawler getFolloweeCrawler() {
+		return new UserAdjacencyListCrawler(this, user, ListType.FOLLOWEES);
 	}
 
-	public AdjacencyListCrawler getFollowerCrawler() {
-		return new AdjacencyListCrawler(this, user, ListType.FOLLOWERS);
+	public UserAdjacencyListCrawler getFollowerCrawler() {
+		return new UserAdjacencyListCrawler(this, user, ListType.FOLLOWERS);
 	}
 
 	public UserInfoCrawler getInfoCrawler() {
