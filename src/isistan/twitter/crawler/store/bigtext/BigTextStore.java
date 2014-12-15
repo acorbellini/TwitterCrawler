@@ -30,7 +30,7 @@ import edu.jlime.util.compression.CompressionType;
 
 public class BigTextStore implements TwitterStore {
 
-	private boolean loadMode = false;
+	// private boolean loadMode = true;
 
 	private SortedLevelFile tweets_file;
 	private RecordFormat tweet_key_format;
@@ -53,27 +53,27 @@ public class BigTextStore implements TwitterStore {
 	public BigTextStore(File file) throws Exception {
 		tweet_key_format = tweetFormat();
 		tweets_file = createSorted(file, "tweets", tweet_key_format,
-				32 * 1024 * 1024);
+				8 * 1024 * 1024);
 
 		favs_key_format = tweetFormat();
 		favs_file = createSorted(file, "favs", favs_key_format,
-				32 * 1024 * 1024);
+				8 * 1024 * 1024);
 
 		uinfo_key_format = infoFormat();
 		uinfo_file = createSorted(file, "uinfo", uinfo_key_format,
-				2 * 1024 * 1024);
+				4 * 1024 * 1024);
 
 		followees_key_format = adjFormat();
 		followees_file = createSorted(file, "followees", followees_key_format,
-				32 * 1024 * 1024);
+				4 * 1024 * 1024);
 
 		followers_key_format = adjFormat();
 		followers_file = createSorted(file, "followers", followers_key_format,
-				32 * 1024 * 1024);
+				4 * 1024 * 1024);
 
 		status_key_format = statusFormat();
 		status_file = createSorted(file, "status", status_key_format,
-				2 * 1024 * 1024);
+				4 * 1024 * 1024);
 	}
 
 	private RecordFormat statusFormat() {
@@ -107,8 +107,8 @@ public class BigTextStore implements TwitterStore {
 		return SortedLevelFile.open(file.getPath() + "/" + name,
 				new LevelOptions().setFormat(tweet_key_format2)
 						.setMaxMemTablesWriting(8).setMemTableSize(mem)
-						.setBaseSize(10 * 1024 * 1024).setMaxLevel0Files(4)
-						.setCompactLevel0Threshold(15).setMaxLevelFiles(10)
+						.setBaseSize(20 * 1024 * 1024).setMaxLevel0Files(4)
+						.setCompactLevel0Threshold(4).setMaxLevelFiles(10)
 						.setMaxBlockSize(512 * 1024).setMinMergeElements(1)
 						// .setAppendOnly(loadMode)
 						.setCompressed(CompressionType.BZIP.getComp()));

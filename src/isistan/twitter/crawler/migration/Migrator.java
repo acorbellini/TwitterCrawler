@@ -22,26 +22,52 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
-import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.io.Files;
 
 public class Migrator {
 	private static final int MAX_THREADS = 10;
-	private static final int MAX_QUEUED_THREADS = 15;
+	private static final int MAX_SUB_THREADS = 20;
+	private static final int MAX_QUEUED_THREADS = 10;
 	private static final int COMPACT_SIZE = 100000;
+
+	ExecutorService TweetsExecutor = createExec("Tweet");
+	ExecutorService FavsExecutor = createExec("Favs");
+	ExecutorService FolloweesExecutor = createExec("Followees");
+	ExecutorService FollowersExecutor = createExec("Followers");
+	ExecutorService InfoExecutor = createExec("Info");
+	ExecutorService StatusExecutor = createExec("Status");
+
+	private ExecutorService createExec(final String name) {
+		return Executors.newFixedThreadPool(MAX_SUB_THREADS,
+				new ThreadFactory() {
+
+					@Override
+					public Thread newThread(Runnable r) {
+						ThreadFactory tf = Executors.defaultThreadFactory();
+						Thread t = tf.newThread(r);
+						t.setName("User Converter Thread for " + name);
+						return t;
+					}
+				});
+	}
+
 	long plainSizeOnDisk = 0;
 	long followeeSize = 0;
 	long followerSize = 0;
+
 	TwitterStore store;
 	CrawlFolder folder;
+
 	private File statusDir;
 	private Properties prop;
 	private File propFile;
+
 	Long lastUser = null;
 	int cont = 0;
 	List<Long> migrated = new ArrayList<>();
@@ -49,12 +75,14 @@ public class Migrator {
 	boolean skipChecking = true;
 
 	public Migrator(String folder, String db, String userList) throws Exception {
+		// System.in.read();
 		if (userList != null)
 			this.folder = new CrawlFolder(folder, userList);
 		else
 			this.folder = new CrawlFolder(folder);
 		// this.store = new MapDBStore(new File(db));
 		this.store = new BigTextStore(new File(db));
+		this.store.commit();
 		this.statusDir = new File(folder + "/crawl-status");
 		this.prop = new Properties();
 		propFile = new File(db + "/" + "lastMigrated.prop");
@@ -76,18 +104,39 @@ public class Migrator {
 		long init = System.currentTimeMillis();
 		try {
 
-			ExecutorService exec = Executors.newFixedThreadPool(MAX_THREADS);
+			ExecutorService exec = Executors.newFixedThreadPool(MAX_THREADS,
+					new ThreadFactory() {
+
+						@Override
+						public Thread newThread(Runnable r) {
+							ThreadFactory tf = Executors.defaultThreadFactory();
+							Thread t = tf.newThread(r);
+							t.setName("Per User Thread");
+							return t;
+						}
+					});
 			final Semaphore outer = new Semaphore(MAX_QUEUED_THREADS);
 
 			boolean found = false;
 
+			long rateTime = System.currentTimeMillis();
+			
 			for (final UserFolder userFolder : folder) {
-				if (!found && userFolder.getUser() == lastUser)
+				if (userFolder.getUser().equals(lastUser)) {
 					found = true;
+				}
 
-				if ((cont + 1) % 5000 == 0) {
-					System.out.println("Current count " + cont + " user "
-							+ userFolder.getUser());
+				if (!found)
+					continue;
+
+				if ((cont + 1) % 100 == 0) {
+					float l = System.currentTimeMillis() - rateTime;
+					if (l != 0) {
+						System.out.println("Current count " + cont + " user "
+								+ userFolder.getUser() + " " + 100 / (l / 1000)
+								+ " users per second");
+					}
+					rateTime = System.currentTimeMillis();
 				}
 				if ((cont + 1) % COMPACT_SIZE == 0) {
 					while (outer.availablePermits() != MAX_QUEUED_THREADS) {
@@ -117,7 +166,7 @@ public class Migrator {
 					@Override
 					public void run() {
 						try {
-							Semaphore inner = new Semaphore(-3);
+							Semaphore inner = new Semaphore(-5);
 							saveTweets(userFolder, inner);
 							saveAdjacency(userFolder, inner);
 							saveInfo(userFolder, inner);
@@ -157,7 +206,13 @@ public class Migrator {
 			}
 			exec.shutdown();
 			exec.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
-			this.exec.shutdown();
+			FavsExecutor.shutdown();
+			TweetsExecutor.shutdown();
+			StatusExecutor.shutdown();
+			InfoExecutor.shutdown();
+			FolloweesExecutor.shutdown();
+			FollowersExecutor.shutdown();
+
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
@@ -188,7 +243,7 @@ public class Migrator {
 
 	protected void saveStatus(final Long user, final File userStatus,
 			final Semaphore sem) {
-		exec.execute(new Runnable() {
+		StatusExecutor.execute(new Runnable() {
 
 			@Override
 			public void run() {
@@ -220,10 +275,8 @@ public class Migrator {
 		new Migrator(args[0], args[1], args.length == 3 ? args[2] : null).run();
 	}
 
-	ExecutorService exec = Executors.newCachedThreadPool();
-
 	private void saveInfo(final UserFolder userFolder, final Semaphore sem) {
-		exec.execute(new Runnable() {
+		InfoExecutor.execute(new Runnable() {
 
 			@Override
 			public void run() {
@@ -253,7 +306,7 @@ public class Migrator {
 	}
 
 	private void saveAdjacency(final UserFolder userFolder, final Semaphore sem) {
-		exec.execute(new Runnable() {
+		FolloweesExecutor.execute(new Runnable() {
 
 			@Override
 			public void run() {
@@ -273,6 +326,13 @@ public class Migrator {
 							+ userFolder.getUser() + "): " + e.getClass() + ":"
 							+ e.getMessage() + ":" + e.getCause());
 				}
+				sem.release();
+			}
+		});
+		FollowersExecutor.execute(new Runnable() {
+
+			@Override
+			public void run() {
 				try {
 					// if (!store.hasAdjacency(userFolder.getUser(),
 					// ListType.FOLLOWERS)) {
@@ -294,7 +354,7 @@ public class Migrator {
 	}
 
 	private void saveTweets(final UserFolder userFolder, final Semaphore sem) {
-		exec.execute(new Runnable() {
+		TweetsExecutor.execute(new Runnable() {
 			@Override
 			public void run() {
 				try {
@@ -312,6 +372,12 @@ public class Migrator {
 							+ userFolder.getUser() + "): " + e.getClass() + ":"
 							+ e.getMessage() + ":" + e.getCause());
 				}
+				sem.release();
+			}
+		});
+		FavsExecutor.execute(new Runnable() {
+			@Override
+			public void run() {
 				try {
 					// if (!store.hasTweets(userFolder.getUser(),
 					// TweetType.FAVORITES))
