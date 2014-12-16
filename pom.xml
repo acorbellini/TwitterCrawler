@@ -52,6 +52,8 @@
 							<tasks>
 								<copy todir="${project.basedir}/dist"
 									file="${project.build.directory}/${project.build.finalName}.jar" />
+								<tar destfile="${project.basedir}/release/twitter-crawler.tar.gz"
+									compression="gzip" basedir="${project.basedir}/dist/" />
 							</tasks>
 						</configuration>
 						<goals>
