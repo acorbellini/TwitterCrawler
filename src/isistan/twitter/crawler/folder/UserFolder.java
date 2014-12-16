@@ -1,7 +1,5 @@
 package isistan.twitter.crawler.folder;
 
-import isistan.twitter.crawler.folder.UsersTable.User;
-
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.File;
@@ -34,23 +32,6 @@ public class UserFolder {
 		} finally {
 			is.close();
 		}
-		// LineNumberReader lineNumberReader = new LineNumberReader(
-		// new FileReader(filename));
-		// lineNumberReader.skip(Long.MAX_VALUE);
-		// int lines = lineNumberReader.getLineNumber();
-		// lineNumberReader.close();
-		// return lines;
-
-		// try {
-		// return Integer.valueOf(execCommand("C:/cygwin64/bin/wc.exe", "-l",
-		// filename.getPath()).split(" ")[0]);
-		// } catch (NumberFormatException e) {
-		// e.printStackTrace();
-		// } catch (Exception e) {
-		// e.printStackTrace();
-		// }
-		// return 0;
-
 	}
 
 	public static String execCommand(String... cmd) throws Exception {
@@ -72,12 +53,9 @@ public class UserFolder {
 
 	private long user;
 
-	private User userTables;
-
 	public UserFolder(long u, String uf) {
 		this.uf = uf;
 		this.setUser(u);
-		this.userTables = UsersTable.getUser(u);
 	}
 
 	public File getFavs() {

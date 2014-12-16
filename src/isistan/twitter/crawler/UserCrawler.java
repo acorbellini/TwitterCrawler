@@ -3,8 +3,11 @@ package isistan.twitter.crawler;
 import isistan.twitter.crawler.config.CrawlerConfiguration;
 import isistan.twitter.crawler.status.UserStatus;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
@@ -15,8 +18,11 @@ public class UserCrawler {
 
 	private Logger log = Logger.getLogger(UserCrawler.class);
 
-	public UserCrawler(long user) {
+	private ExecutorService execUser;
+
+	public UserCrawler(long user, ExecutorService execUser) {
 		this.u = user;
+		this.execUser = execUser;
 	}
 
 	public void crawlUser() throws Exception {
@@ -43,42 +49,49 @@ public class UserCrawler {
 			}
 			log.info("Finished storing User Info for " + u);
 		}
-		ExecutorService execUser = Executors.newCachedThreadPool();
+		List<Future<Void>> futs = new ArrayList<>();
+
 		if (!userProp.isDisabled()) {
-			execUser.execute(new Runnable() {
+			futs.add(execUser.submit(new Callable<Void>() {
 				@Override
-				public void run() {
+				public Void call() throws Exception {
 					userProp.getFolloweeCrawler().crawl();
+					return null;
 				}
-			});
+			}));
 			if (!config.isCrawlOnlyFollowees()) {
-				execUser.execute(new Runnable() {
+				futs.add(execUser.submit(new Callable<Void>() {
 					@Override
-					public void run() {
+					public Void call() throws Exception {
 						userProp.getFollowerCrawler().crawl();
+						return null;
 					}
 
-				});
-				execUser.execute(new Runnable() {
+				}));
+				futs.add(execUser.submit(new Callable<Void>() {
 					@Override
-					public void run() {
+					public Void call() throws Exception {
 						userProp.getTweetCrawler().crawl();
+						return null;
 					}
-				});
 
-				execUser.execute(new Runnable() {
+				}));
+
+				futs.add(execUser.submit(new Callable<Void>() {
 					@Override
-					public void run() {
+					public Void call() throws Exception {
 						userProp.getFavCrawler().crawl();
+						return null;
 					}
-				});
+
+				}));
 			}
 
 		}
-		execUser.shutdown();
-		execUser.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
+		for (Future<Void> future : futs) {
+			future.get();
+		}
 		userProp.setComplete();
 
 	}
-
 }

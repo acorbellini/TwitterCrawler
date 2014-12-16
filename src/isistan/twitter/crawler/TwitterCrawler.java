@@ -5,17 +5,15 @@ import isistan.twitter.crawler.util.CrawlerUtil.UserIterator;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.util.Properties;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
-
-import twitter4j.TwitterException;
 
 public class TwitterCrawler {
 
@@ -42,7 +40,29 @@ public class TwitterCrawler {
 
 		log.info("Starting crawler.");
 
-		exec = Executors.newFixedThreadPool(config.getMaxThreads());
+		final ExecutorService execUser = Executors.newFixedThreadPool(
+				config.getMaxThreads(), new ThreadFactory() {
+
+					@Override
+					public Thread newThread(Runnable r) {
+						ThreadFactory tf = Executors.defaultThreadFactory();
+						Thread t = tf.newThread(r);
+						t.setName("Per User Worker");
+						return t;
+					}
+				});
+
+		exec = Executors.newFixedThreadPool(config.getMaxThreads(),
+				new ThreadFactory() {
+
+					@Override
+					public Thread newThread(Runnable r) {
+						ThreadFactory tf = Executors.defaultThreadFactory();
+						Thread t = tf.newThread(r);
+						t.setName("Crawler worker");
+						return t;
+					}
+				});
 
 		final Semaphore sem = new Semaphore(config.getAccountSize());
 		int count = 0;
@@ -62,7 +82,7 @@ public class TwitterCrawler {
 					@Override
 					public void run() {
 						try {
-							new UserCrawler(user).crawlUser();
+							new UserCrawler(user, execUser).crawlUser();
 						} catch (Exception e) {
 							e.printStackTrace();
 						}
@@ -77,27 +97,11 @@ public class TwitterCrawler {
 			} catch (Exception e) {
 			}
 		}
+		execUser.shutdown();
+		execUser.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
+
 		exec.shutdown();
 		exec.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
-	}
-
-	public void saveFollowees(long userId, Properties userProp,
-			String userPropPath, File userDir, File account)
-			throws TwitterException, InterruptedException, IOException {
-		saveFriends(userId, FOLLOWEES, userProp, userPropPath, userDir, account);
-	}
-
-	public void saveFollowers(long userId, Properties userProp,
-			String userPropPath, File userDir, File account)
-			throws TwitterException, InterruptedException, IOException {
-		saveFriends(userId, FOLLOWERS, userProp, userPropPath, userDir, account);
-
-	}
-
-	public void saveFriends(long userId, String type, Properties userProp,
-			String userPropPath, File userDir, File account)
-			throws TwitterException, InterruptedException, IOException {
-
 	}
 
 	public void start(String configFile) throws Exception {

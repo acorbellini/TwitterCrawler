@@ -28,9 +28,6 @@ import edu.jlime.util.DataTypeUtils;
 import edu.jlime.util.compression.CompressionType;
 
 public class BigTextStore {
-
-	// private boolean loadMode = true;
-
 	private SortedLevelFile tweets_file;
 	private RecordFormat tweet_key_format;
 
@@ -110,18 +107,13 @@ public class BigTextStore {
 		status_file.compact();
 	}
 
-	public void compactTweets(long user, TweetType tweets) throws Exception {
-	}
-
 	private SortedLevelFile createSorted(File file, String name,
 			RecordFormat tweet_key_format2, int mem) throws Exception {
-		return SortedLevelFile.open(
-				file.getPath() + "/" + name,
+		return SortedLevelFile.open(file.getPath() + "/" + name,
 				new LevelOptions().setFormat(tweet_key_format2)
-						.setMaxMemTablesWriting(8).setMemTableSize(mem)
-						.setBaseSize(20 * 1024 * 1024).setMaxLevel0Files(4)
-						.setCompactLevel0Threshold(4).setMaxLevelFiles(10)
-						.setMaxBlockSize(512 * 1024)
+						.setMemTableSize(mem).setBaseSize(20 * 1024 * 1024)
+						.setMaxLevel0Files(4).setCompactLevel0Threshold(4)
+						.setMaxLevelFiles(10).setMaxBlockSize(512 * 1024)
 						.setCompressed(CompressionType.BZIP.getComp()));
 	}
 
@@ -154,10 +146,6 @@ public class BigTextStore {
 			adj.add(DataTypeUtils.byteArrayToLong(longasbytes));
 		}
 		return adj.toArray();
-	}
-
-	public Long getLatestCrawled() throws Exception {
-		return null;
 	}
 
 	public List<Tweet> getTweets(long user, TweetType type) throws Exception {
@@ -198,10 +186,6 @@ public class BigTextStore {
 			return new HashMap<>();
 		ByteBuffer def = new ByteBuffer(stat);
 		return def.getMap();
-	}
-
-	public String getUserStatus(String k, long user) throws Exception {
-		return null;
 	}
 
 	public boolean hasAdjacency(Long user, ListType t) throws Exception {
@@ -280,9 +264,6 @@ public class BigTextStore {
 		}
 	}
 
-	public void saveLatestCrawled(long user) throws Exception {
-	}
-
 	public void saveTweet(Long user, TweetType type, boolean skipCheck,
 			Tweet tweet) throws Exception {
 		if (type.equals(TweetType.TWEETS)) {
@@ -296,11 +277,6 @@ public class BigTextStore {
 			if (skipCheck || !favs_file.contains(byteArray))
 				favs_file.put(byteArray, StoreUtil.tweetToByteArray(tweet));
 		}
-	}
-
-	public void saveTweets(long user, TweetType type, List<Tweet> tweets)
-			throws Exception {
-
 	}
 
 	public void saveUserInfo(UserInfo info, boolean skipCheck) throws Exception {
@@ -318,9 +294,6 @@ public class BigTextStore {
 		byte[] byteArray = rec.toByteArray();
 		if (skipCheck || !status_file.contains(byteArray))
 			status_file.put(byteArray, buffer.build());
-	}
-
-	public void setUserStatus(String k, String v, long user) throws Exception {
 	}
 
 	private RecordFormat statusFormat() {

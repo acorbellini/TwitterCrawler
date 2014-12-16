@@ -52,9 +52,6 @@
 							<tasks>
 								<copy todir="${project.basedir}/dist"
 									file="${project.build.directory}/${project.build.finalName}.jar" />
-								<copy todir="${project.basedir}/dist/lib">
-									<fileset dir="${project.basedir}/lib"/>
-								</copy>
 							</tasks>
 						</configuration>
 						<goals>
