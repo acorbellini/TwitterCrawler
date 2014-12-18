@@ -72,7 +72,6 @@ public class Migrator {
 			this.folder = new CrawlFolder(folder);
 		// this.store = new MapDBStore(new File(db));
 		this.store = new BigTextStore(new File(db));
-		this.store.commit();
 		this.statusDir = new File(folder + "/crawl-status");
 		this.prop = new Properties();
 		propFile = new File(db + "/" + "lastMigrated.prop");
