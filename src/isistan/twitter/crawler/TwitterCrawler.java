@@ -69,11 +69,15 @@ public class TwitterCrawler {
 		for (UserIterator iterator = config.getUsers(); iterator.hasNext();) {
 			final Long user = (Long) iterator.next();
 			try {
-				if (user < config.getLatestCrawled()) {
+				if (config.getLatestCrawled() != null
+						&& user < config.getLatestCrawled()) {
 					count++;
 					continue;
 				}
+				
 				sem.acquire();
+
+				config.registerUser(user);
 
 				log.info("Starting user crawler on user " + user + " , number "
 						+ count++ + " in the list file.");
@@ -87,7 +91,11 @@ public class TwitterCrawler {
 							e.printStackTrace();
 						}
 
-						config.updateLatestCrawled(user);
+						try {
+							config.updateLatestCrawled(user);
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
 
 						sem.release();
 					}
@@ -95,13 +103,17 @@ public class TwitterCrawler {
 				});
 
 			} catch (Exception e) {
+				e.printStackTrace();
 			}
 		}
-		execUser.shutdown();
-		execUser.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
 
 		exec.shutdown();
 		exec.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
+
+		execUser.shutdown();
+		execUser.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
+
+		config.getStore().close();
 	}
 
 	public void start(String configFile) throws Exception {

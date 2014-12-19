@@ -74,19 +74,23 @@ public class CrawlerGetter<R> {
 				untilReset = config.TIME_IF_SUSPENDED;
 			if (CrawlerErrorCodes.badAuthentication(e)
 					|| CrawlerErrorCodes.invalidOrExpired(e)) {
-				log.warn("DISCARDING account " + current.getAccount().getName());
+				if (log.isDebugEnabled())
+					log.debug("DISCARDING account "
+							+ current.getAccount().getName());
 				releaseAccount(true);
 			}
 		}
 
-		log.warn("Exception on request " + req + ", using account "
-				+ current.getAccount().getName() + ": " + ex.getMessage());
+		if (log.isDebugEnabled())
+			log.debug("Exception on request " + req + ", using account "
+					+ current.getAccount().getName() + ": " + ex.getMessage());
 
 		config.setTime(current, req.getReqType(), System.currentTimeMillis()
 				+ untilReset * 1000);
 
-		log.warn("CHANGING account " + current.getAccount().getName()
-				+ ", trying to get another that has less waiting time.");
+		if (log.isDebugEnabled())
+			log.debug("CHANGING account " + current.getAccount().getName()
+					+ ", trying to get another that has less waiting time.");
 		releaseAccount(false);
 
 		if (tries > CrawlerConfiguration.MAX_TRIES_BEFORE_DISCARD_ACCOUNT) {
@@ -98,8 +102,9 @@ public class CrawlerGetter<R> {
 				return;
 			}
 
-			log.warn("Changing account " + current.getAccount().getName()
-					+ " I tried " + tries + " times to make a request.");
+			if (log.isDebugEnabled())
+				log.debug("Changing account " + current.getAccount().getName()
+						+ " I tried " + tries + " times to make a request.");
 			releaseAccount(false);
 		}
 
@@ -109,16 +114,18 @@ public class CrawlerGetter<R> {
 		if (toSleep < 0)
 			toSleep = 0;
 
-		log.info("Waiting " + (toSleep / 1000) + " seconds on account "
-				+ current.getAccount().getName());
+		if (log.isDebugEnabled())
+			log.debug("Waiting " + (toSleep / 1000) + " seconds on account "
+					+ current.getAccount().getName());
 		try {
 			while (toSleep > 0) {
 				Thread.sleep(Math.min(toSleep, 30000));
 				toSleep = toSleep - 30000;
-				log.info("Still waiting, "
-						+ (toSleep / 1000 > 0 ? toSleep / 1000 : 0)
-						+ " seconds on account "
-						+ current.getAccount().getName());
+				if (log.isDebugEnabled())
+					log.debug("Still waiting, "
+							+ (toSleep / 1000 > 0 ? toSleep / 1000 : 0)
+							+ " seconds on account "
+							+ current.getAccount().getName());
 			}
 		} catch (Exception e2) {
 

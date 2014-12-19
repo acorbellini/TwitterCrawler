@@ -116,12 +116,13 @@ public class UserTweetsCrawler {
 			}
 
 			if (stats != null) {
-				log.info("Obtained " + stats.size() + " tweets (" + type
-						+ ") for user " + user);
+				if (log.isDebugEnabled())
+					log.debug("Obtained " + stats.size() + " tweets (" + type
+							+ ") for user " + user);
 				store.writeTweets(user, type, stats);
 			}
 			status.set("Page-" + type, Integer.valueOf(page).toString());
-			
+
 			page++;
 		} while (stats != null && !stats.isEmpty());
 		store.finishedTweets(user, type);

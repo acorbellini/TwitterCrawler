@@ -12,7 +12,6 @@ import isistan.twitter.crawler.util.StoreUtil;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Map;
 import java.util.Properties;
 
 import twitter4j.Place;
@@ -22,32 +21,7 @@ import twitter4j.User;
 
 public class CrawlerStore {
 
-	private static class StoredUserStatus extends UserStatus {
-
-		private CrawlerStore db;
-
-		public StoredUserStatus(long u, CrawlerStore dbCrawlerStore) {
-			super(u);
-			this.db = dbCrawlerStore;
-		}
-
-		public String get(String k) throws Exception {
-			Map<String, String> hash = db.bt.getUserStatus(getUser());
-			return hash.get(k);
-		}
-
-		public void set(String k, String v) throws Exception {
-			Map<String, String> hash = db.bt.getUserStatus(getUser());
-			hash.put(k, v);
-			db.bt.saveUserStatus(getUser(), hash, true);
-		}
-
-		public void setComplete() throws Exception {
-		}
-
-	}
-
-	private BigTextStore bt;
+	BigTextStore bt;
 	private Properties ltProp;
 
 	private String outputdir;
@@ -132,4 +106,7 @@ public class CrawlerStore {
 			throws Exception {
 	}
 
+	public void close() throws Exception {
+		bt.close();
+	}
 }

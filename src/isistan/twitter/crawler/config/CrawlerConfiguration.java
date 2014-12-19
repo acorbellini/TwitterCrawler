@@ -11,9 +11,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
-import java.util.TreeSet;
 
 import org.apache.log4j.Logger;
 
@@ -80,7 +81,7 @@ public class CrawlerConfiguration {
 
 	private Logger log = Logger.getLogger(CrawlerConfiguration.class);
 
-	private TreeSet<Long> minimumAlreadyCrawled = new TreeSet<Long>();
+	private List<Long> minimumAlreadyCrawled = new ArrayList<Long>();
 
 	private UserIterator users;
 
@@ -130,11 +131,11 @@ public class CrawlerConfiguration {
 
 		latestCrawled = store.getLatestCrawled();
 
-		if (latestCrawled == null) {
-			minimumAlreadyCrawled.add(users.peek() - 1);
-			latestCrawled = users.peek() - 1;
-		} else
-			minimumAlreadyCrawled.add(latestCrawled);
+		// if (latestCrawled == null) {
+		// minimumAlreadyCrawled.add(users.peek() - 1);
+		// latestCrawled = users.peek() - 1;
+		// } else
+		// minimumAlreadyCrawled.add(latestCrawled);
 	}
 
 	public synchronized void discardAccount(Account current2) {
@@ -251,23 +252,30 @@ public class CrawlerConfiguration {
 		current2.setTime(reqType, l);
 	}
 
-	public void updateLatestCrawled(final long user) {
-		synchronized (minimumAlreadyCrawled) {
-			long latest = user;
-			minimumAlreadyCrawled.add(user);
-			long next = minimumAlreadyCrawled.first() + 1;
-			while (minimumAlreadyCrawled.size() > 1
-					&& minimumAlreadyCrawled.contains(next)) {
-				minimumAlreadyCrawled.remove(minimumAlreadyCrawled.first());
-				latest = next;
-				next++;
-			}
-			try {
-				store.updateLatestCrawled(user);
+	HashSet<Long> done = new HashSet<>();
 
-			} catch (Exception e) {
-				e.printStackTrace();
+	public void updateLatestCrawled(final long user) throws Exception {
+		synchronized (minimumAlreadyCrawled) {
+			Long u = minimumAlreadyCrawled.get(0);
+			done.add(user);
+			if (u.equals(user)) {
+				Iterator<Long> it = minimumAlreadyCrawled.iterator();
+				while (it.hasNext()) {
+					Long curr = it.next();
+					if (done.contains(curr)) {
+						store.updateLatestCrawled(curr);
+						it.remove();
+						done.remove(curr);
+					} else
+						return;
+				}
 			}
+		}
+	}
+
+	public void registerUser(Long user) {
+		synchronized (minimumAlreadyCrawled) {
+			minimumAlreadyCrawled.add(user);
 		}
 	}
 }

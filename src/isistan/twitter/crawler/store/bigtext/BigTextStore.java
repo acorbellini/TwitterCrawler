@@ -56,19 +56,19 @@ public class BigTextStore {
 
 		uinfo_key_format = infoFormat();
 		uinfo_file = createSorted(file, "uinfo", uinfo_key_format,
-				4 * 1024 * 1024);
+				8 * 1024 * 1024);
 
 		followees_key_format = adjFormat();
 		followees_file = createSorted(file, "followees", followees_key_format,
-				4 * 1024 * 1024);
+				8 * 1024 * 1024);
 
 		followers_key_format = adjFormat();
 		followers_file = createSorted(file, "followers", followers_key_format,
-				4 * 1024 * 1024);
+				8 * 1024 * 1024);
 
 		status_key_format = statusFormat();
 		status_file = createSorted(file, "status", status_key_format,
-				4 * 1024 * 1024);
+				8 * 1024 * 1024);
 	}
 
 	private RecordFormat adjFormat() {

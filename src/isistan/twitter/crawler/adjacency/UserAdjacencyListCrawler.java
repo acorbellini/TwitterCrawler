@@ -59,8 +59,9 @@ public class UserAdjacencyListCrawler {
 			ids = CrawlerUtil.get(new GetFriendsRequest(type, u, next));
 
 			if (ids != null) {
-				log.info("Obtained " + ids.getIDs().length + " friends ("
-						+ type + ") for user " + u);
+				if (log.isDebugEnabled())
+					log.debug("Obtained " + ids.getIDs().length + " friends ("
+							+ type + ") for user " + u);
 				store.addAdjacency(u, type, ids.getIDs());
 
 				if (ids.hasNext()) {
