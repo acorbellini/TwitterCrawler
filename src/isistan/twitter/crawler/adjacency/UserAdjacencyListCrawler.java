@@ -3,7 +3,7 @@ package isistan.twitter.crawler.adjacency;
 import isistan.twitter.crawler.config.CrawlerConfiguration;
 import isistan.twitter.crawler.request.GetFriendsRequest;
 import isistan.twitter.crawler.status.UserStatus;
-import isistan.twitter.crawler.store.CrawlerStore;
+import isistan.twitter.crawler.store.bigtext.BigTextStore;
 import isistan.twitter.crawler.util.CrawlerUtil;
 
 import org.apache.log4j.Logger;
@@ -53,7 +53,7 @@ public class UserAdjacencyListCrawler {
 					+ " on cursor " + next);
 		}
 
-		CrawlerStore store = config.getStore();
+		BigTextStore store = config.getStore();
 		IDs ids = null;
 		do {
 			ids = CrawlerUtil.get(new GetFriendsRequest(type, u, next));
@@ -72,7 +72,6 @@ public class UserAdjacencyListCrawler {
 			}
 		} while (ids != null && ids.hasNext() && !status.has("IS_ESCAPED"));
 
-		store.finishedAdjacency(u, type);
 	}
 
 	private void setComplete() throws Exception {

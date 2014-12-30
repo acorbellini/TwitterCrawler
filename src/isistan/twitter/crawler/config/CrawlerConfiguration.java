@@ -1,7 +1,6 @@
 package isistan.twitter.crawler.config;
 
 import isistan.twitter.crawler.request.RequestType;
-import isistan.twitter.crawler.store.CrawlerStore;
 import isistan.twitter.crawler.store.bigtext.BigTextStore;
 import isistan.twitter.crawler.util.CrawlerUtil;
 import isistan.twitter.crawler.util.CrawlerUtil.UserIterator;
@@ -87,7 +86,7 @@ public class CrawlerConfiguration {
 
 	private Properties ltProp;
 
-	private CrawlerStore store;
+	private BigTextStore store;
 
 	private Long latestCrawled;
 
@@ -97,8 +96,8 @@ public class CrawlerConfiguration {
 		crawlDir = new File(outputdir + "/crawl");
 		crawlstatus = new File(outputdir + "/crawl-status");
 
-		BigTextStore bt = new BigTextStore(new File(outputdir));
-		store = new CrawlerStore(bt, outputdir);
+		store = new BigTextStore(new File(outputdir));
+		// store = new CrawlerStore(bt, outputdir);
 		oauthdirs = new ArrayList<File>();
 
 		for (String s : config.getProperty(OAUTHDIR).split(",")) {
@@ -211,7 +210,7 @@ public class CrawlerConfiguration {
 		return outputdir;
 	}
 
-	public CrawlerStore getStore() {
+	public BigTextStore getStore() {
 		return store;
 	}
 

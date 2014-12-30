@@ -4,7 +4,7 @@ import isistan.twitter.crawler.config.CrawlerConfiguration;
 import isistan.twitter.crawler.request.RequestType;
 import isistan.twitter.crawler.request.TwitterCrawlerRequest;
 import isistan.twitter.crawler.status.UserStatus;
-import isistan.twitter.crawler.store.CrawlerStore;
+import isistan.twitter.crawler.store.bigtext.BigTextStore;
 import isistan.twitter.crawler.textcat.TextCategorizer;
 import isistan.twitter.crawler.util.CrawlerUtil;
 
@@ -52,7 +52,7 @@ public class UserTweetsCrawler {
 		CrawlerConfiguration config = CrawlerConfiguration.getCurrent();
 		int page = 1;
 
-		CrawlerStore store = config.getStore();
+		BigTextStore store = config.getStore();
 		if (status.has("Page-" + type)) {
 			page = Integer.valueOf(status.get("Page-" + type)) + 1;
 			log.info("Resuming tweet crawling(" + type + ") for " + user
@@ -67,7 +67,7 @@ public class UserTweetsCrawler {
 					+ "PLACE_GEOMETRY_TYPE;" + "PLACE_ID;" + "PLACE_NAME;"
 					+ "PLACE_STREET_ADDR;" + "PLACE_BOUNDING_BOX_COORD;"
 					+ "MENTIONS;" + "TEXT" + "\r\n";
-			store.writeTweetsHeader(user, type, header);
+			// store.writeTweetsHeader(user, type, header);
 		}
 
 		ResponseList<Status> stats = null;
@@ -125,7 +125,6 @@ public class UserTweetsCrawler {
 
 			page++;
 		} while (stats != null && !stats.isEmpty());
-		store.finishedTweets(user, type);
 	}
 
 	private void setComplete() throws Exception {

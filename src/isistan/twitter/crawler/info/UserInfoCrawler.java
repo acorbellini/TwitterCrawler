@@ -4,7 +4,7 @@ import isistan.twitter.crawler.config.CrawlerConfiguration;
 import isistan.twitter.crawler.request.RequestType;
 import isistan.twitter.crawler.request.TwitterCrawlerRequest;
 import isistan.twitter.crawler.status.UserStatus;
-import isistan.twitter.crawler.store.CrawlerStore;
+import isistan.twitter.crawler.store.bigtext.BigTextStore;
 import isistan.twitter.crawler.util.CrawlerUtil;
 
 import org.apache.log4j.Logger;
@@ -47,7 +47,7 @@ public class UserInfoCrawler {
 		if (user == null)
 			status.setSuspended();
 		else {
-			CrawlerStore store = CrawlerConfiguration.getCurrent().getStore();
+			BigTextStore store = CrawlerConfiguration.getCurrent().getStore();
 			store.writeInfo(user);
 			if (user.isProtected())
 				status.setProtected();

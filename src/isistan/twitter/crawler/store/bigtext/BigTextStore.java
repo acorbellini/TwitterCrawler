@@ -3,25 +3,37 @@ package isistan.twitter.crawler.store.bigtext;
 import gnu.trove.list.array.TLongArrayList;
 import isistan.twitter.crawler.adjacency.ListType;
 import isistan.twitter.crawler.info.UserInfo;
+import isistan.twitter.crawler.status.UserStatus;
+import isistan.twitter.crawler.store.StoredUserStatus;
 import isistan.twitter.crawler.tweet.Tweet;
 import isistan.twitter.crawler.tweet.TweetType;
+import isistan.twitter.crawler.util.CrawlerUtil;
 import isistan.twitter.crawler.util.ListReader;
 import isistan.twitter.crawler.util.StoreUtil;
 import isistan.twitter.crawler.util.TweetReader;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
+import twitter4j.Place;
+import twitter4j.ResponseList;
+import twitter4j.Status;
+import twitter4j.User;
 import edu.bigtextformat.levels.LevelOptions;
+import edu.bigtextformat.levels.RangeIterator;
 import edu.bigtextformat.levels.SortedLevelFile;
 import edu.bigtextformat.record.FormatType;
 import edu.bigtextformat.record.FormatTypes;
 import edu.bigtextformat.record.Record;
 import edu.bigtextformat.record.RecordFormat;
+import edu.bigtextformat.util.Merger;
 import edu.bigtextformat.util.Pair;
 import edu.jlime.util.ByteBuffer;
 import edu.jlime.util.DataTypeUtils;
@@ -45,8 +57,13 @@ public class BigTextStore {
 
 	private SortedLevelFile status_file;
 	private RecordFormat status_key_format;
+	private Properties ltProp;
+	private File file;
 
 	public BigTextStore(File file) throws Exception {
+		this.file = file;
+		this.ltProp = CrawlerUtil.openProperties(file + "/LatestCrawled.prop");
+
 		tweet_key_format = tweetFormat();
 		tweets_file = createSorted(file, "tweets", tweet_key_format,
 				8 * 1024 * 1024);
@@ -179,7 +196,11 @@ public class BigTextStore {
 		return StoreUtil.bytesToUserInfo(val);
 	}
 
-	public Map<String, String> getUserStatus(Long user) throws Exception {
+	public UserStatus getUserStatus(long u) throws Exception {
+		return new StoredUserStatus(u, this);
+	}
+
+	public Map<String, String> getUserStatus0(Long user) throws Exception {
 		Record rec = status_key_format.newRecord().set("uid", user);
 		byte[] stat = status_file.get(rec.toByteArray());
 		if (stat == null)
@@ -309,4 +330,85 @@ public class BigTextStore {
 						"tid" });
 	}
 
+	public void updateLatestCrawled(Long user) throws Exception {
+		CrawlerUtil.updateProperty("LatestCrawled", user + "", ltProp, file
+				+ "/LatestCrawled.prop");
+	}
+
+	public Long getLatestCrawled() {
+		String lt = ltProp.getProperty("LatestCrawled");
+		if (lt != null)
+			return Long.valueOf(lt);
+		return null;
+	}
+
+	public void addAdjacency(long u, ListType type, long[] list)
+			throws Exception {
+		for (long l : list)
+			saveAdjacent(u, type, true, l);
+	}
+
+	public void writeTweets(long user, TweetType type,
+			ResponseList<Status> stats) throws Exception {
+		for (Status t : stats) {
+			Status retweetedStatus = t.getRetweetedStatus();
+			Tweet tweet = new Tweet(user, t.getId(), t.getCreatedAt(),
+					StoreUtil.removeTags(t.getSource()), Tweet.formatHashtags(t
+							.getHashtagEntities()),
+					Tweet.formatMentionEntities(t.getUserMentionEntities()),
+					t.getText(), t.getRetweetCount(),
+					retweetedStatus != null ? retweetedStatus.getId() : -1,
+					t.getFavoriteCount(), t.isFavorited(),
+					t.isPossiblySensitive());
+			tweet.setReply(t.getInReplyToScreenName(), t.getInReplyToUserId(),
+					t.getInReplyToStatusId());
+			tweet.setContributors(Arrays.toString(t.getContributors()));
+			tweet.setMedia(Tweet.formatMedia(t.getMediaEntities()));
+			if (t.getPlace() != null) {
+				Place place = t.getPlace();
+				tweet.setPlace(place.getCountry(), place.getFullName(),
+						place.getName());
+			} else
+				tweet.setPlace("", "", "");
+
+			saveTweet(tweet.user, type, false, tweet);
+		}
+	}
+
+	public void writeInfo(User user) throws Exception {
+		saveUserInfo(
+				new UserInfo(user.getId(), user.getScreenName(),
+						user.getName(), user.getDescription(), user.getLang(),
+						new java.sql.Date(user.getCreatedAt().getTime()),
+						user.getLocation(), user.getTimeZone(),
+						user.getUtcOffset(), user.getFriendsCount(),
+						user.getFollowersCount(), user.getFavouritesCount(),
+						user.getListedCount(), user.getStatusesCount(),
+						user.isVerified(), user.isProtected()), false);
+	}
+
+	public static void merge(String from, String to) throws IOException,
+			Exception {
+		Merger.merge(from + "/favs", to + "/favs");
+		Merger.merge(from + "/tweets", to + "/tweets");
+		Merger.merge(from + "/followees", to + "/followees");
+		Merger.merge(from + "/followers", to + "/followers");
+		Merger.merge(from + "/status", to + "/status");
+		Merger.merge(from + "/uinfo", to + "/uinfo");
+	}
+
+	public long[] getUserList() throws Exception {
+		RangeIterator it = status_file.rangeIterator(status_key_format
+				.newRecord().set("uid", 0l).toByteArray(), status_key_format
+				.newRecord().set("uid", Long.MAX_VALUE).toByteArray());
+		TLongArrayList list = new TLongArrayList();
+		while (it.hasNext()) {
+			Pair<byte[], byte[]> pair = (Pair<byte[], byte[]>) it.next();
+			list.add(DataTypeUtils.byteArrayToLong(status_key_format.getData(
+					"uid", pair.getKey())));
+		}
+
+		return list.toArray();
+
+	}
 }
