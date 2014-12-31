@@ -8,6 +8,7 @@ import java.util.Map;
 public class StoredUserStatus extends UserStatus {
 
 	private BigTextStore db;
+	private Map<String, String> cached;
 
 	public StoredUserStatus(long u, BigTextStore dbCrawlerStore) {
 		super(u);
@@ -15,13 +16,17 @@ public class StoredUserStatus extends UserStatus {
 	}
 
 	public synchronized String get(String k) throws Exception {
-		Map<String, String> hash = db.getUserStatus0(getUser());
-		return hash.get(k);
+		if (cached == null) {
+			cached = db.getUserStatus0(getUser());
+		}
+		return cached.get(k);
 	}
 
 	public synchronized void set(String k, String v) throws Exception {
-		Map<String, String> hash = db.getUserStatus0(getUser());
-		hash.put(k, v);
-		db.saveUserStatus(getUser(), hash, true);
+		if (cached == null) {
+			cached = db.getUserStatus0(getUser());
+		}
+		cached.put(k, v);
+		db.saveUserStatus(getUser(), cached, true);
 	}
 }
