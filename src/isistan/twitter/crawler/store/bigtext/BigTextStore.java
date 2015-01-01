@@ -371,7 +371,7 @@ public class BigTextStore {
 			} else
 				tweet.setPlace("", "", "");
 
-			saveTweet(tweet.user, type, false, tweet);
+			saveTweet(tweet.user, type, true, tweet);
 		}
 	}
 
