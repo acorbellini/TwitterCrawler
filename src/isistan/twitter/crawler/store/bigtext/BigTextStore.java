@@ -4,7 +4,6 @@ import gnu.trove.list.array.TLongArrayList;
 import isistan.twitter.crawler.adjacency.ListType;
 import isistan.twitter.crawler.info.UserInfo;
 import isistan.twitter.crawler.status.UserStatus;
-import isistan.twitter.crawler.store.StoredUserStatus;
 import isistan.twitter.crawler.tweet.Tweet;
 import isistan.twitter.crawler.tweet.TweetType;
 import isistan.twitter.crawler.util.CrawlerUtil;
@@ -57,6 +56,7 @@ public class BigTextStore {
 
 	private SortedLevelFile status_file;
 	private RecordFormat status_key_format;
+
 	private Properties ltProp;
 	private File file;
 
@@ -197,10 +197,13 @@ public class BigTextStore {
 	}
 
 	public UserStatus getUserStatus(long u) throws Exception {
-		return new StoredUserStatus(u, this);
+		return new UserStatus(u, this);
 	}
 
 	public Map<String, String> getUserStatus0(Long user) throws Exception {
+		if (user == 1173308479)
+			System.out.println("Found");
+
 		Record rec = status_key_format.newRecord().set("uid", user);
 		byte[] stat = status_file.get(rec.toByteArray());
 		if (stat == null)

@@ -25,8 +25,6 @@ public class CrawlerGetter<R> {
 
 	Twitter twitter = null;
 
-	Account last = null;
-
 	Account current = null;
 
 	CrawlerConfiguration config;
@@ -48,9 +46,12 @@ public class CrawlerGetter<R> {
 			} catch (Exception ex) {
 				handleError(twitter, ex);
 			}
-		config.setTime(current, req.getReqType(), 0l);
-		if (current != null)
-			config.release(current, req.getReqType());
+
+		if (current != null) {
+			current.setTime(req.getReqType(),
+					System.currentTimeMillis() + 10000l);
+			current.release(req.getReqType());
+		}
 		return res;
 	}
 
@@ -71,13 +72,12 @@ public class CrawlerGetter<R> {
 				untilReset = e.getRateLimitStatus().getSecondsUntilReset();
 
 			if (untilReset < 0)
-				untilReset = config.TIME_IF_SUSPENDED;
+				untilReset = CrawlerConfiguration.TIME_IF_SUSPENDED;
 			if (CrawlerErrorCodes.badAuthentication(e)
 					|| CrawlerErrorCodes.invalidOrExpired(e)) {
-				if (log.isDebugEnabled())
-					log.debug("DISCARDING account "
-							+ current.getAccount().getName());
-				releaseAccount(true);
+
+				log.warn("DISCARDING account " + current.getAccount().getName());
+				releaseAccount(true, false);
 			}
 		}
 
@@ -85,13 +85,13 @@ public class CrawlerGetter<R> {
 			log.debug("Exception on request " + req + ", using account "
 					+ current.getAccount().getName() + ": " + ex.getMessage());
 
-		config.setTime(current, req.getReqType(), System.currentTimeMillis()
+		current.setTime(req.getReqType(), System.currentTimeMillis()
 				+ untilReset * 1000);
 
 		if (log.isDebugEnabled())
 			log.debug("CHANGING account " + current.getAccount().getName()
 					+ ", trying to get another that has less waiting time.");
-		releaseAccount(false);
+		releaseAccount(false, false);
 
 		if (tries > CrawlerConfiguration.MAX_TRIES_BEFORE_DISCARD_ACCOUNT) {
 			globaltries++;
@@ -103,12 +103,12 @@ public class CrawlerGetter<R> {
 			}
 
 			if (log.isDebugEnabled())
-				log.debug("Changing account " + current.getAccount().getName()
-						+ " I tried " + tries + " times to make a request.");
-			releaseAccount(false);
+				log.debug("CHANGING account " + current.getAccount().getName()
+						+ " I TRIED " + tries + " times to make a request.");
+			releaseAccount(false, true);
 		}
 
-		long toSleep = config.getTime(current, req.getReqType())
+		long toSleep = current.getTime(req.getReqType())
 				- System.currentTimeMillis();
 
 		if (toSleep < 0)
@@ -139,17 +139,23 @@ public class CrawlerGetter<R> {
 
 	}
 
-	private void releaseAccount(boolean discard) {
-		last = current;
-		while (current == last) {
+	private void releaseAccount(boolean discard, boolean forceChange) {
+		Account last = current;
+		boolean finished = false;
+		while (!finished) {
 			if (discard)
 				config.discardAccount(current);
 
-			config.release(current, req.getReqType());
+			current.release(req.getReqType());
 
 			current = config.getAccount(req.getReqType());
-			tries = 0;
-			untilReset = 0;
+
+			if (last != current) {
+				tries = 0;
+				untilReset = 0;
+				finished = true;
+			} else if (!forceChange)
+				finished = true;
 		}
 	}
 

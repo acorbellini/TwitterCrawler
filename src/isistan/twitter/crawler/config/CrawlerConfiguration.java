@@ -13,7 +13,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
+import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.log4j.Logger;
 
@@ -74,7 +77,7 @@ public class CrawlerConfiguration {
 
 	private int max_threads;
 
-	private HashMap<Account, Integer> failures = new HashMap<Account, Integer>();
+	private Map<Account, Integer> failures = new ConcurrentHashMap<Account, Integer>();
 
 	private ArrayList<Account> accountPool = new ArrayList<>();
 
@@ -137,31 +140,48 @@ public class CrawlerConfiguration {
 		// minimumAlreadyCrawled.add(latestCrawled);
 	}
 
-	public synchronized void discardAccount(Account current2) {
-		accountPool.remove(current2);
+	public void discardAccount(Account current2) {
+		current2.setDiscarded();
 	}
 
-	public synchronized Account getAccount(final RequestType reqType) {
+	public Account getAccount(final RequestType reqType) {
 		while (true) {
-			final Long curr = System.currentTimeMillis();
-			ArrayList<Account> sortedByTime = new ArrayList<>(accountPool);
-			Collections.sort(sortedByTime, new Comparator<Account>() {
-				@Override
-				public int compare(Account o1, Account o2) {
-					return Long.valueOf(o1.getTime(reqType) - curr).compareTo(
-							o2.getTime(reqType) - curr);
-				}
-			});
-			for (Account account : sortedByTime) {
-				if (!account.isUsed(reqType)) {
-					account.setUsed(reqType);
-					return account;
+			ArrayList<Account> sorted = new ArrayList<Account>();
+			final ArrayList<Long> times = new ArrayList<>();
+			ArrayList<Integer> indexes = new ArrayList<Integer>();
+			int i = 0;
+			long curr = System.currentTimeMillis();
+			for (Account account : accountPool) {
+				if (!account.isDiscarded()) {
+					Long t = account.getTime(reqType) - curr;
+					times.add(t);
+					sorted.add(account);
+					indexes.add(i++);
 				}
 			}
-			try {
-				wait();
-			} catch (InterruptedException e) {
-				e.printStackTrace();
+			Collections.sort(indexes, new Comparator<Integer>() {
+
+				@Override
+				public int compare(Integer o1, Integer o2) {
+					return times.get(o1).compareTo(times.get(o2));
+				}
+
+			});
+			for (Integer integer : indexes) {
+				Account account = sorted.get(integer);
+				synchronized (account) {
+					if (!account.isDiscarded() && !account.isUsed(reqType)) {
+						account.setUsed(reqType);
+						return account;
+					}
+				}
+			}
+			synchronized (accountPool) {
+				try {
+					accountPool.wait(10000);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 	}
@@ -178,7 +198,7 @@ public class CrawlerConfiguration {
 		return crawlstatus;
 	}
 
-	public HashMap<Account, Integer> getFailures() {
+	public Map<Account, Integer> getFailures() {
 		return failures;
 	}
 
@@ -214,10 +234,6 @@ public class CrawlerConfiguration {
 		return store;
 	}
 
-	public synchronized long getTime(Account current2, RequestType reqType) {
-		return current2.getTime(reqType);
-	}
-
 	public String getUserCrawlDir(long u) {
 		return crawlDir + "/" + u;
 	}
@@ -242,15 +258,6 @@ public class CrawlerConfiguration {
 		return recrawlInfo;
 	}
 
-	public synchronized void release(Account current2, RequestType reqType) {
-		current2.release(reqType);
-	}
-
-	public synchronized void setTime(Account current2, RequestType reqType,
-			long l) {
-		current2.setTime(reqType, l);
-	}
-
 	HashSet<Long> done = new HashSet<>();
 
 	public void updateLatestCrawled(final long user) throws Exception {
@@ -259,15 +266,17 @@ public class CrawlerConfiguration {
 			done.add(user);
 			if (u.equals(user)) {
 				Iterator<Long> it = minimumAlreadyCrawled.iterator();
+				Long curr = null;
 				while (it.hasNext()) {
-					Long curr = it.next();
+					curr = it.next();
 					if (done.contains(curr)) {
-						store.updateLatestCrawled(curr);
 						it.remove();
 						done.remove(curr);
 					} else
 						return;
 				}
+				if (curr != null)
+					store.updateLatestCrawled(curr);
 			}
 		}
 	}
@@ -275,6 +284,12 @@ public class CrawlerConfiguration {
 	public void registerUser(Long user) {
 		synchronized (minimumAlreadyCrawled) {
 			minimumAlreadyCrawled.add(user);
+		}
+	}
+
+	public void notifyAccountReleased() {
+		synchronized (accountPool) {
+			accountPool.notifyAll();
 		}
 	}
 }

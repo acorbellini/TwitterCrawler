@@ -1,20 +1,39 @@
 package isistan.twitter.crawler.status;
 
+import java.util.Map;
+
 import isistan.twitter.crawler.adjacency.ListType;
 import isistan.twitter.crawler.adjacency.UserAdjacencyListCrawler;
 import isistan.twitter.crawler.info.UserInfoCrawler;
+import isistan.twitter.crawler.store.bigtext.BigTextStore;
 import isistan.twitter.crawler.tweet.TweetType;
 import isistan.twitter.crawler.tweet.UserTweetsCrawler;
 
-public abstract class UserStatus {
+public class UserStatus {
 
 	protected long user;
+	private BigTextStore db;
+	private Map<String, String> cached;
 
-	public UserStatus(long user) {
-		this.user = user;
+	public UserStatus(long u, BigTextStore dbCrawlerStore) {
+		this.user = u;
+		this.db = dbCrawlerStore;
 	}
 
-	public abstract String get(String string) throws Exception;
+	public synchronized String get(String k) throws Exception {
+		if (cached == null) {
+			cached = db.getUserStatus0(getUser());
+		}
+		return cached.get(k);
+	}
+
+	public synchronized void set(String k, String v) throws Exception {
+		if (cached == null) {
+			cached = db.getUserStatus0(getUser());
+		}
+		cached.put(k, v);
+		db.saveUserStatus(getUser(), cached, true);
+	}
 
 	public UserTweetsCrawler getFavCrawler() {
 		return new UserTweetsCrawler(this, user, TweetType.FAVORITES);
@@ -97,8 +116,6 @@ public abstract class UserStatus {
 	public boolean isTweetComplete() throws Exception {
 		return isTrue("TweetInfoComplete");
 	}
-
-	public abstract void set(String k, String v) throws Exception;
 
 	public void setComplete() throws Exception {
 		set("UserComplete", "True");

@@ -74,11 +74,11 @@ public class TwitterCrawler {
 					count++;
 					continue;
 				}
-				
+
 				sem.acquire();
 
 				config.registerUser(user);
-
+				// if (log.isDebugEnabled())
 				log.info("Starting user crawler on user " + user + " , number "
 						+ count++ + " in the list file.");
 

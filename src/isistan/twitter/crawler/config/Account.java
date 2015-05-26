@@ -3,12 +3,14 @@ package isistan.twitter.crawler.config;
 import isistan.twitter.crawler.request.RequestType;
 
 import java.io.File;
-import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class Account {
 	private File account;
-	HashMap<RequestType, Boolean> inUse = new HashMap<>();
-	HashMap<RequestType, Long> times = new HashMap<>();
+	Map<RequestType, Boolean> inUse = new ConcurrentHashMap<>();
+	Map<RequestType, Long> times = new ConcurrentHashMap<>();
+	private volatile boolean discarded = false;
 
 	public Account(File f) {
 		this.setAccount(f);
@@ -35,9 +37,7 @@ public class Account {
 	public void release(RequestType req) {
 		inUse.put(req, false);
 		CrawlerConfiguration config = CrawlerConfiguration.getCurrent();
-		synchronized (config) {
-			config.notifyAll();
-		}
+		config.notifyAccountReleased();
 
 	}
 
@@ -51,5 +51,13 @@ public class Account {
 
 	public void setUsed(RequestType req) {
 		inUse.put(req, true);
+	}
+
+	public void setDiscarded() {
+		discarded = true;
+	}
+
+	public boolean isDiscarded() {
+		return discarded;
 	}
 }
