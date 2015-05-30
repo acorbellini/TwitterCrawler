@@ -12,16 +12,5 @@ table.dataTable {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
-	max-width: 100px;
-}
-
-.dataTable tbody tr td:hover {
-	overflow: visible;
-	background-color: #bbb;
-	z-index: 1;
-	border: 1px solid;
-	white-space: normal;
-	word-break: break-word;
-	position: absolute;
-	max-width: 40%;
+	max-width: 200px;
 }
