@@ -194,10 +194,7 @@ public class TwitterStore {
 		return new UserStatus(u, this);
 	}
 
-	public Map<String, String> getUserStatus0(Long user) throws Exception {
-		if (user == 1173308479)
-			System.out.println("Found");
-
+	public Map<String, String> getStatusProperties(Long user) throws Exception {
 		Record rec = status_key_format.newRecord().set("uid", user);
 		byte[] stat = status_file.get(rec.toByteArray());
 		if (stat == null)
@@ -206,44 +203,44 @@ public class TwitterStore {
 		return def.getMap();
 	}
 
-	public boolean hasAdjacency(Long user, ListType t) throws Exception {
-		if (t.equals(ListType.FOLLOWEES)) {
-			Record rec = followees_key_format.newRecord().set("uid", user);
-			return followees_file.contains(rec.toByteArray());
-		} else if (t.equals(ListType.FOLLOWERS)) {
-			Record rec = followers_key_format.newRecord().set("uid", user);
-			return followers_file.contains(rec.toByteArray());
-		}
-		return false;
-	}
+	// public boolean hasAdjacency(Long user, ListType t) throws Exception {
+	// if (t.equals(ListType.FOLLOWEES)) {
+	// Record rec = followees_key_format.newRecord().set("uid", user);
+	// return followees_file.contains(rec.toByteArray());
+	// } else if (t.equals(ListType.FOLLOWERS)) {
+	// Record rec = followers_key_format.newRecord().set("uid", user);
+	// return followers_file.contains(rec.toByteArray());
+	// }
+	// return false;
+	// }
 
-	public boolean hasInfo(Long user) throws Exception {
-		Record rec = uinfo_key_format.newRecord().set("uid", user);
-		return uinfo_file.contains(rec.toByteArray());
-	}
+	// public boolean hasInfo(Long user) throws Exception {
+	// Record rec = uinfo_key_format.newRecord().set("uid", user);
+	// return uinfo_file.contains(rec.toByteArray());
+	// }
 
-	public boolean hasStatus(Long user) throws Exception {
-		Record rec = status_key_format.newRecord().set("uid", user);
-		return status_file.contains(rec.toByteArray());
-	}
+	// public boolean hasStatus(Long user) throws Exception {
+	// Record rec = status_key_format.newRecord().set("uid", user);
+	// return status_file.contains(rec.toByteArray());
+	// }
 
-	public boolean hasTweets(Long user, TweetType type) throws Exception {
-		Iterator<Pair<byte[], byte[]>> it = null;
-		if (type.equals(TweetType.TWEETS)) {
-			it = tweets_file.rangeIterator(
-					tweet_key_format.newRecord().set("uid", user)
-							.set("tid", 0l).toByteArray(),
-					tweet_key_format.newRecord().set("uid", user)
-							.set("tid", Long.MAX_VALUE).toByteArray());
-		} else if (type.equals(TweetType.FAVORITES)) {
-			it = favs_file.rangeIterator(
-					favs_key_format.newRecord().set("uid", user).set("tid", 0l)
-							.toByteArray(),
-					favs_key_format.newRecord().set("uid", user)
-							.set("tid", Long.MAX_VALUE).toByteArray());
-		}
-		return it.hasNext();
-	}
+	// public boolean hasTweets(Long user, TweetType type) throws Exception {
+	// Iterator<Pair<byte[], byte[]>> it = null;
+	// if (type.equals(TweetType.TWEETS)) {
+	// it = tweets_file.rangeIterator(
+	// tweet_key_format.newRecord().set("uid", user)
+	// .set("tid", 0l).toByteArray(),
+	// tweet_key_format.newRecord().set("uid", user)
+	// .set("tid", Long.MAX_VALUE).toByteArray());
+	// } else if (type.equals(TweetType.FAVORITES)) {
+	// it = favs_file.rangeIterator(
+	// favs_key_format.newRecord().set("uid", user).set("tid", 0l)
+	// .toByteArray(),
+	// favs_key_format.newRecord().set("uid", user)
+	// .set("tid", Long.MAX_VALUE).toByteArray());
+	// }
+	// return it.hasNext();
+	// }
 
 	private RecordFormat infoFormat() {
 		return RecordFormat.create(new String[] { "uid" },

@@ -22,14 +22,14 @@ public class UserStatus {
 
 	public synchronized String get(String k) throws Exception {
 		if (cached == null) {
-			cached = db.getUserStatus0(getUser());
+			cached = db.getStatusProperties(getUser());
 		}
 		return cached.get(k);
 	}
 
 	public synchronized void set(String k, String v) throws Exception {
 		if (cached == null) {
-			cached = db.getUserStatus0(getUser());
+			cached = db.getStatusProperties(getUser());
 		}
 		cached.put(k, v);
 		db.saveUserStatus(getUser(), cached, true);
