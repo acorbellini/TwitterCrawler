@@ -141,13 +141,13 @@ public class TwitterStore {
 		if (type.equals(ListType.FOLLOWEES)) {
 			it = followees_file.rangeIterator(
 					followees_key_format.newRecord().set("uid", user)
-							.set("listid", 0).toByteArray(),
+							.set("listid", Integer.MIN_VALUE).toByteArray(),
 					followees_key_format.newRecord().set("uid", user)
 							.set("listid", Integer.MAX_VALUE).toByteArray());
 		} else if (type.equals(ListType.FOLLOWERS)) {
 			it = followers_file.rangeIterator(
 					followers_key_format.newRecord().set("uid", user)
-							.set("listid", 0).toByteArray(),
+							.set("listid", Integer.MIN_VALUE).toByteArray(),
 					followers_key_format.newRecord().set("uid", user)
 							.set("listid", Integer.MAX_VALUE).toByteArray());
 		}
@@ -164,13 +164,13 @@ public class TwitterStore {
 		if (type.equals(TweetType.TWEETS)) {
 			it = tweets_file.rangeIterator(
 					tweet_key_format.newRecord().set("uid", user)
-							.set("tid", 0l).toByteArray(),
+							.set("tid", Long.MIN_VALUE).toByteArray(),
 					tweet_key_format.newRecord().set("uid", user)
 							.set("tid", Long.MAX_VALUE).toByteArray());
 		} else if (type.equals(TweetType.FAVORITES)) {
 			it = favs_file.rangeIterator(
-					favs_key_format.newRecord().set("uid", user).set("tid", 0l)
-							.toByteArray(),
+					favs_key_format.newRecord().set("uid", user)
+							.set("tid", Long.MIN_VALUE).toByteArray(),
 					favs_key_format.newRecord().set("uid", user)
 							.set("tid", Long.MAX_VALUE).toByteArray());
 		}
@@ -396,8 +396,9 @@ public class TwitterStore {
 
 	public long[] getUserList() throws Exception {
 		RangeIterator it = status_file.rangeIterator(status_key_format
-				.newRecord().set("uid", 0l).toByteArray(), status_key_format
-				.newRecord().set("uid", Long.MAX_VALUE).toByteArray());
+				.newRecord().set("uid", Long.MIN_VALUE).toByteArray(),
+				status_key_format.newRecord().set("uid", Long.MAX_VALUE)
+						.toByteArray());
 		TLongArrayList list = new TLongArrayList();
 		while (it.hasNext()) {
 			Pair<byte[], byte[]> pair = (Pair<byte[], byte[]>) it.next();
