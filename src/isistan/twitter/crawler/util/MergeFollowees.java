@@ -2,12 +2,11 @@ package isistan.twitter.crawler.util;
 
 import isistan.twitter.crawler.adjacency.ListType;
 import isistan.twitter.crawler.status.UserStatus;
-import isistan.twitter.crawler.store.bigtext.BigTextStore;
+import isistan.twitter.crawler.store.bigtext.TwitterStore;
 
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
-import java.io.IOException;
 import java.util.Scanner;
 
 public class MergeFollowees {
@@ -17,7 +16,7 @@ public class MergeFollowees {
 
 		String inputList = args[0];
 		String crawlFolder = args[1];
-		BigTextStore bt = new BigTextStore(new File(crawlFolder));
+		TwitterStore bt = new TwitterStore(new File(crawlFolder));
 		BufferedWriter writer = new BufferedWriter(new FileWriter(new File(
 				args[2])));// "followees.txt"
 		Scanner input = new Scanner(new File(inputList));

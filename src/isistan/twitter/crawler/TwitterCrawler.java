@@ -2,6 +2,7 @@ package isistan.twitter.crawler;
 
 import isistan.twitter.crawler.config.CrawlerConfiguration;
 import isistan.twitter.crawler.util.CrawlerUtil.UserIterator;
+import isistan.twitter.crawler.util.TwitterStoreShell;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -37,6 +38,10 @@ public class TwitterCrawler {
 
 		final CrawlerConfiguration config = CrawlerConfiguration
 				.create(configProp);
+
+		log.info("Starting shell.");
+		TwitterStoreShell shell = new TwitterStoreShell(config.getStore(), 8080);
+		shell.start();
 
 		log.info("Starting crawler.");
 
@@ -113,7 +118,9 @@ public class TwitterCrawler {
 		execUser.shutdown();
 		execUser.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
 
+		log.info("Crawler finished");
 		config.getStore().close();
+		shell.stop();
 	}
 
 	public void start(String configFile) throws Exception {

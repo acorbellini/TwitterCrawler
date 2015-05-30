@@ -4,7 +4,7 @@ import isistan.twitter.crawler.config.CrawlerConfiguration;
 import isistan.twitter.crawler.request.RequestType;
 import isistan.twitter.crawler.request.TwitterCrawlerRequest;
 import isistan.twitter.crawler.status.UserStatus;
-import isistan.twitter.crawler.store.bigtext.BigTextStore;
+import isistan.twitter.crawler.store.bigtext.TwitterStore;
 import isistan.twitter.crawler.textcat.TextCategorizer;
 import isistan.twitter.crawler.util.CrawlerUtil;
 
@@ -52,7 +52,7 @@ public class UserTweetsCrawler {
 		CrawlerConfiguration config = CrawlerConfiguration.getCurrent();
 		int page = 1;
 
-		BigTextStore store = config.getStore();
+		TwitterStore store = config.getStore();
 		if (status.has("Page-" + type)) {
 			page = Integer.valueOf(status.get("Page-" + type)) + 1;
 			log.info("Resuming tweet crawling(" + type + ") for " + user

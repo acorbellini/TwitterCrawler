@@ -10,6 +10,8 @@ import twitter4j.HashtagEntity;
 import twitter4j.MediaEntity;
 import twitter4j.UserMentionEntity;
 
+import com.google.gson.JsonObject;
+
 public class Tweet implements Serializable {
 
 	public long user;
@@ -192,12 +194,31 @@ public class Tweet implements Serializable {
 
 	@Override
 	public String toString() {
-		return "Tweet [user=" + user + ", tweetid=" + tweetid + ", created="
-				+ created + ", source=" + source + ", hashtags=" + hashtags
-				+ ", mentions=" + mentions + ", text=" + text
-				+ ", retweetCount=" + retweetCount + ", retweetid=" + retweetid
-				+ ", place=" + place + ", media=" + media + ", contrib="
-				+ contrib + ", reply=" + reply + "]";
+		JsonObject obj = new JsonObject();
+		obj.addProperty("user", user);
+		obj.addProperty("tweetid", tweetid);
+		obj.addProperty("created", created.toString());
+		obj.addProperty("source", source);
+		obj.addProperty("hashtags", hashtags);
+		obj.addProperty("mentions", mentions);
+		obj.addProperty("text", text);
+		obj.addProperty("retweetCount", retweetCount);
+		obj.addProperty("retweetid", retweetid);
+		obj.addProperty("place", place.toString());
+		obj.addProperty("media", media);
+		obj.addProperty("contrib", contrib);
+		obj.addProperty("reply", reply.toString());
+		return obj.toString();
+		// return "{\"user\":\"" + user + "\", \"tweetid\":\"" + tweetid
+		// + "\", \"created\":\"" + escape(created.toString())
+		// + "\", \"source\":\"" + escape(source) + "\", \"hashtags\":\""
+		// + escape(hashtags) + "\", \"mentions\":\"" + escape(mentions)
+		// + "\", \"text\":\"" + escape(text) + "\", \"retweetCount\":\""
+		// + retweetCount + "\", \"retweetid\":\"" + retweetid
+		// + "\", \"place\":\"" + escape(place.toString())
+		// + "\", \"media\":\"" + escape(media) + "\", \"contrib\":\""
+		// + escape(contrib) + "\", \"reply\":\""
+		// + escape(reply.toString()) + "\"}";
 	}
 
 	public static String formatMentionEntities(

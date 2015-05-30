@@ -4,9 +4,10 @@ import isistan.twitter.crawler.adjacency.ListType;
 import isistan.twitter.crawler.folder.CrawlFolder;
 import isistan.twitter.crawler.folder.UserFolder;
 import isistan.twitter.crawler.info.UserInfo;
-import isistan.twitter.crawler.store.bigtext.BigTextStore;
+import isistan.twitter.crawler.store.bigtext.TwitterStore;
 import isistan.twitter.crawler.tweet.TweetType;
 import isistan.twitter.crawler.util.StoreUtil;
+import isistan.twitter.crawler.util.TwitterStoreShell;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -51,7 +52,7 @@ public class Migrator {
 	long followeeSize = 0;
 	long followerSize = 0;
 
-	BigTextStore store;
+	TwitterStore store;
 	CrawlFolder folder;
 
 	private File statusDir;
@@ -63,6 +64,7 @@ public class Migrator {
 	List<Long> migrated = new ArrayList<>();
 	HashSet<Long> done = new HashSet<>();
 	boolean skipChecking = true;
+	private TwitterStoreShell shell;
 
 	public Migrator(String folder, String db, String userList) throws Exception {
 		// System.in.read();
@@ -71,7 +73,9 @@ public class Migrator {
 		else
 			this.folder = new CrawlFolder(folder);
 		// this.store = new MapDBStore(new File(db));
-		this.store = new BigTextStore(new File(db));
+		this.store = new TwitterStore(new File(db));
+		this.shell = new TwitterStoreShell(store, 8080);
+		shell.start();
 		this.statusDir = new File(folder + "/crawl-status");
 		this.prop = new Properties();
 		propFile = new File(db + "/" + "lastMigrated.prop");
@@ -222,6 +226,7 @@ public class Migrator {
 			System.out.println("Tamaño total en formato plano: "
 					+ plainSizeOnDisk / (1024 * 1024) + " MB ");
 			store.close();
+			shell.stop();
 
 		}
 		System.out.println("Tiempo de exportación: "

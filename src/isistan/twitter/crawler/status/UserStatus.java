@@ -1,21 +1,21 @@
 package isistan.twitter.crawler.status;
 
-import java.util.Map;
-
 import isistan.twitter.crawler.adjacency.ListType;
 import isistan.twitter.crawler.adjacency.UserAdjacencyListCrawler;
 import isistan.twitter.crawler.info.UserInfoCrawler;
-import isistan.twitter.crawler.store.bigtext.BigTextStore;
+import isistan.twitter.crawler.store.bigtext.TwitterStore;
 import isistan.twitter.crawler.tweet.TweetType;
 import isistan.twitter.crawler.tweet.UserTweetsCrawler;
+
+import java.util.Map;
 
 public class UserStatus {
 
 	protected long user;
-	private BigTextStore db;
+	private TwitterStore db;
 	private Map<String, String> cached;
 
-	public UserStatus(long u, BigTextStore dbCrawlerStore) {
+	public UserStatus(long u, TwitterStore dbCrawlerStore) {
 		this.user = u;
 		this.db = dbCrawlerStore;
 	}

@@ -5,7 +5,7 @@ import isistan.twitter.crawler.adjacency.ListType;
 import isistan.twitter.crawler.folder.CrawlFolder;
 import isistan.twitter.crawler.folder.UserFolder;
 import isistan.twitter.crawler.info.UserInfo;
-import isistan.twitter.crawler.store.bigtext.BigTextStore;
+import isistan.twitter.crawler.store.bigtext.TwitterStore;
 import isistan.twitter.crawler.tweet.Tweet;
 import isistan.twitter.crawler.tweet.TweetType;
 import isistan.twitter.crawler.util.StoreUtil;
@@ -33,7 +33,7 @@ public class Validate {
 
 	private CrawlFolder folder;
 
-	private BigTextStore store;
+	private TwitterStore store;
 
 	ExecutorService exec = Executors.newFixedThreadPool(50);
 
@@ -45,7 +45,7 @@ public class Validate {
 		else
 			this.folder = new CrawlFolder(folder, userFile);
 		// this.store = new MapDBStore(new File(db));
-		this.store = new BigTextStore(new File(db));
+		this.store = new TwitterStore(new File(db));
 		this.store.close();
 	}
 
