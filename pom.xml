@@ -70,16 +70,6 @@
 			<version>3.0.3</version>
 		</dependency>
 		<dependency>
-			<groupId>org.apache.derby</groupId>
-			<artifactId>derby</artifactId>
-			<version>10.10.2.0</version>
-		</dependency>
-		<dependency>
-			<groupId>org.mapdb</groupId>
-			<artifactId>mapdb</artifactId>
-			<version>1.0.5</version>
-		</dependency>
-		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-compress</artifactId>
 			<version>1.8.1</version>
@@ -88,11 +78,6 @@
 			<groupId>net.jpountz.lz4</groupId>
 			<artifactId>lz4</artifactId>
 			<version>1.2.0</version>
-		</dependency>
-		<dependency>
-			<groupId>com.h2database</groupId>
-			<artifactId>h2</artifactId>
-			<version>1.4.180</version>
 		</dependency>
 		<dependency>
 			<groupId>org.twitter4j</groupId>
