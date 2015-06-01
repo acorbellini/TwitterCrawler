@@ -26,20 +26,25 @@ public class UserCrawler {
 
 	public void crawlUser() throws Exception {
 
-		CrawlerConfiguration config = CrawlerConfiguration.getCurrent();
+		final CrawlerConfiguration config = CrawlerConfiguration.getCurrent();
 
 		final UserStatus userProp = config.getStore().getUserStatus(u);
 
-		if (userProp.isComplete())
+		if (!config.isForceRecrawl() && userProp.isComplete()) {
+			log.info("Skipping user " + u
+					+ ": is completed and forceRecrawl is false");
 			return;
+		}
 
-		if (!config.mustRecrawlInfo() && userProp.isCompleted())
+		if (userProp.isDisabled()) {
+			log.info("User " + u + " is DISABLED (escaped= "
+					+ userProp.isEscaped() + " protected="
+					+ userProp.isProtected() + " suspended="
+					+ userProp.isSuspended() + ").");
 			return;
+		}
 
-		if (userProp.isDisabled())
-			return;
-
-		if (config.mustRecrawlInfo() || !userProp.isInfoComplete()) {
+		if (config.isForceRecrawl() || !userProp.isInfoComplete()) {
 			log.info("Storing User Info for " + u);
 			try {
 				userProp.getInfoCrawler().crawl();
@@ -48,49 +53,68 @@ public class UserCrawler {
 			}
 			log.info("Finished storing User Info for " + u);
 		}
-		List<Future<Void>> futs = new ArrayList<>();
+		List<Future<?>> futs = new ArrayList<>();
 
 		if (!userProp.isDisabled()) {
-			futs.add(execUser.submit(new Callable<Void>() {
-				@Override
-				public Void call() throws Exception {
-					userProp.getFolloweeCrawler().crawl();
-					return null;
-				}
-			}));
-			if (!config.isCrawlOnlyFollowees()) {
-				futs.add(execUser.submit(new Callable<Void>() {
+			final String username = config.getStore().getUserInfo(u).scn;
+
+			if (config.isCrawlFollowees())
+				futs.add(execUser.submit(new Runnable() {
+
 					@Override
-					public Void call() throws Exception {
-						userProp.getFollowerCrawler().crawl();
-						return null;
+					public void run() {
+						userProp.getFolloweeCrawler(config.isForceRecrawl())
+								.crawl(username);
 					}
-
 				}));
-				futs.add(execUser.submit(new Callable<Void>() {
+			else
+				log.info("Ignoring FOLLOWEES for " + u + " (@" + username
+						+ ").");
+
+			if (config.isCrawlFollowers())
+				futs.add(execUser.submit(new Runnable() {
+
 					@Override
-					public Void call() throws Exception {
-						userProp.getTweetCrawler().crawl();
-						return null;
+					public void run() {
+						userProp.getFollowerCrawler(config.isForceRecrawl())
+								.crawl(username);
 					}
-
 				}));
+			else
+				log.info("Ignoring FOLLOWERS for " + u + " (@" + username
+						+ ").");
 
-				futs.add(execUser.submit(new Callable<Void>() {
+			if (config.isCrawlTweets())
+				futs.add(execUser.submit(new Runnable() {
+
 					@Override
-					public Void call() throws Exception {
-						userProp.getFavCrawler().crawl();
-						return null;
+					public void run() {
+						userProp.getTweetCrawler(config.isForceRecrawl())
+								.crawl(username);
 					}
-
 				}));
-			}
+			else
+				log.info("Ignoring TWEETS for " + u + " (@" + username + ").");
 
+			if (config.isCrawlFavorites())
+				futs.add(execUser.submit(new Runnable() {
+
+					@Override
+					public void run() {
+						userProp.getFavCrawler(config.isForceRecrawl()).crawl(
+								username);
+					}
+				}));
+			else
+				log.info("Ignoring FAVS for " + u + " (@" + username + ").");
 		}
-		for (Future<Void> future : futs) {
+		for (Future<?> future : futs) {
 			future.get();
 		}
-		userProp.setComplete();
+		if (userProp.isFolloweeComplete() && userProp.isFollowerComplete()
+				&& userProp.isTweetComplete() && userProp.isFavoriteComplete()
+				&& userProp.isInfoComplete())
+			userProp.setComplete();
 
 	}
 }

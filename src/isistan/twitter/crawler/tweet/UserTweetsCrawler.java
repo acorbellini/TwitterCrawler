@@ -22,20 +22,25 @@ public class UserTweetsCrawler {
 	private TweetType type;
 
 	private Logger log = Logger.getLogger(UserTweetsCrawler.class);
+	private boolean force;
 
-	public UserTweetsCrawler(UserStatus status, long user, TweetType type) {
+	public UserTweetsCrawler(UserStatus status, long user, TweetType type,
+			boolean force) {
 		this.status = status;
 		this.user = user;
 		this.type = type;
+		this.force = force;
 	}
 
-	public void crawl() {
+	public void crawl(String username) {
 		try {
-			if (!isComplete()) {
-				log.info("Storing " + type + " for " + user);
-				saveTweets();
+			if (force || !isComplete()) {
+				log.info("Storing " + type + " for " + user + "(@" + username
+						+ ").");
+				saveTweets(username);
 				setComplete();
-				log.info("Finished storing " + type + " for " + user);
+				log.info("Finished storing " + type + " for " + user + "(@"
+						+ username + ").");
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -48,15 +53,15 @@ public class UserTweetsCrawler {
 		return status.isFavoriteComplete();
 	}
 
-	public void saveTweets() throws Exception {
+	public void saveTweets(final String username) throws Exception {
 		CrawlerConfiguration config = CrawlerConfiguration.getCurrent();
 		int page = 1;
 
 		TwitterStore store = config.getStore();
 		if (status.has("Page-" + type)) {
 			page = Integer.valueOf(status.get("Page-" + type)) + 1;
-			log.info("Resuming tweet crawling(" + type + ") for " + user
-					+ " on page " + page);
+			log.info("Resuming tweet crawling(" + type + ") for " + user + "(@"
+					+ username + ") " + " on page " + page);
 		} else {
 			String header = "ID;" + "CREATED;" + "CONTRIBUTORS;"
 					+ "INREPLYTOUSERID;" + "INREPLYTOUSERSCREENNAME;"
@@ -95,7 +100,7 @@ public class UserTweetsCrawler {
 						@Override
 						public String toString() {
 							return "GetTweets - Type: " + type + " User: "
-									+ user;
+									+ user+ "(@" + username + ")";
 						}
 
 					});
@@ -108,8 +113,8 @@ public class UserTweetsCrawler {
 				TextCategorizer cat = new TextCategorizer();
 				String[] list = cat.categorize(b.toString());
 				if (!list[0].equals("english")) {
-					log.info("Escaping " + user + " identified language as "
-							+ list[0]);
+					log.info("Escaping " + user + "(@" + username + ")"
+							+ " identified language as " + list[0]);
 					status.setEscaped();
 					return;
 				}
@@ -118,7 +123,7 @@ public class UserTweetsCrawler {
 			if (stats != null) {
 				if (log.isDebugEnabled())
 					log.debug("Obtained " + stats.size() + " tweets (" + type
-							+ ") for user " + user);
+							+ ") for user " + user + "(@" + username + ").");
 				store.writeTweets(user, type, stats);
 			}
 			status.set("Page-" + type, Integer.valueOf(page).toString());

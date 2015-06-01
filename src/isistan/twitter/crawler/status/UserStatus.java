@@ -38,24 +38,26 @@ public class UserStatus {
 		db.saveUserStatus(getUser(), cached, true);
 	}
 
-	public UserTweetsCrawler getFavCrawler() {
-		return new UserTweetsCrawler(this, user, TweetType.FAVORITES);
+	public UserTweetsCrawler getFavCrawler(boolean force) {
+		return new UserTweetsCrawler(this, user, TweetType.FAVORITES, force);
 	}
 
-	public UserAdjacencyListCrawler getFolloweeCrawler() {
-		return new UserAdjacencyListCrawler(this, user, ListType.FOLLOWEES);
+	public UserAdjacencyListCrawler getFolloweeCrawler(boolean force) {
+		return new UserAdjacencyListCrawler(this, user, ListType.FOLLOWEES,
+				force);
 	}
 
-	public UserAdjacencyListCrawler getFollowerCrawler() {
-		return new UserAdjacencyListCrawler(this, user, ListType.FOLLOWERS);
+	public UserAdjacencyListCrawler getFollowerCrawler(boolean force) {
+		return new UserAdjacencyListCrawler(this, user, ListType.FOLLOWERS,
+				force);
 	}
 
 	public UserInfoCrawler getInfoCrawler() {
 		return new UserInfoCrawler(this, user);
 	}
 
-	public UserTweetsCrawler getTweetCrawler() {
-		return new UserTweetsCrawler(this, user, TweetType.TWEETS);
+	public UserTweetsCrawler getTweetCrawler(boolean force) {
+		return new UserTweetsCrawler(this, user, TweetType.TWEETS, force);
 	}
 
 	public long getUser() {

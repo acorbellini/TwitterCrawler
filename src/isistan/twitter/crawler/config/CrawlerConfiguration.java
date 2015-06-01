@@ -69,9 +69,12 @@ public class CrawlerConfiguration {
 
 	private List<File> oauthdirs;
 
-	private boolean recrawlInfo;
+	private boolean forceRecrawl = false;
 
-	private boolean crawlOnlyFollowees;
+	private boolean crawlFollowees = false;
+	private boolean crawlFollowers = false;
+	private boolean crawlTweets = false;
+	private boolean crawlFavorites = false;
 
 	private int max_threads;
 
@@ -105,13 +108,35 @@ public class CrawlerConfiguration {
 			oauthdirs.add(new File(s));
 		}
 
-		recrawlInfo = false;
-		if (config.getProperty("recrawlInfo") != null)
-			recrawlInfo = new Boolean(config.getProperty("recrawlInfo"));
-		crawlOnlyFollowees = false;
-		if (config.getProperty("crawlOnlyFollowees") != null)
-			crawlOnlyFollowees = new Boolean(
-					config.getProperty("crawlOnlyFollowees"));
+		forceRecrawl = false;
+		if (config.getProperty("forceRecrawl") != null)
+			forceRecrawl = new Boolean(config.getProperty("forceRecrawl"));
+		String crawlList = config.getProperty("crawl");
+		if (crawlList != null) {
+			for (String el : crawlList.replace(" ", "").split(",")) {
+				switch (el) {
+				case "TWEETS":
+					crawlTweets = true;
+					break;
+				case "FAVORITES":
+					crawlFavorites = true;
+					break;
+				case "FOLLOWEES":
+					crawlFollowees = true;
+					break;
+				case "FOLLOWERS":
+					crawlFollowers = true;
+					break;
+				default:
+					break;
+				}
+			}
+		} else {
+			crawlFollowees = true;
+			crawlFollowers = true;
+			crawlTweets = true;
+			crawlFavorites = true;
+		}
 		for (File oauthdir : oauthdirs) {
 			if (oauthdir.isDirectory() && oauthdir.exists()) {
 				for (File f : oauthdir.listFiles()) {
@@ -248,12 +273,8 @@ public class CrawlerConfiguration {
 		return users;
 	}
 
-	public boolean isCrawlOnlyFollowees() {
-		return crawlOnlyFollowees;
-	}
-
-	public boolean mustRecrawlInfo() {
-		return recrawlInfo;
+	public boolean isForceRecrawl() {
+		return forceRecrawl;
 	}
 
 	HashSet<Long> done = new HashSet<>();
@@ -290,4 +311,21 @@ public class CrawlerConfiguration {
 			accountPool.notifyAll();
 		}
 	}
+
+	public boolean isCrawlFavorites() {
+		return crawlFavorites;
+	}
+
+	public boolean isCrawlTweets() {
+		return crawlTweets;
+	}
+
+	public boolean isCrawlFollowers() {
+		return crawlFollowers;
+	}
+
+	public boolean isCrawlFollowees() {
+		return crawlFollowees;
+	}
+
 }

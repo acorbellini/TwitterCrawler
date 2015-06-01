@@ -16,23 +16,29 @@ public class UserAdjacencyListCrawler {
 	private ListType type;
 	private UserStatus status;
 	private Logger log = Logger.getLogger(UserAdjacencyListCrawler.class);
+	private boolean force;
 
-	public UserAdjacencyListCrawler(UserStatus status, long u, ListType type) {
+	public UserAdjacencyListCrawler(UserStatus status, long u, ListType type,
+			boolean force) {
 		this.status = status;
 		this.u = u;
 		this.type = type;
+		this.force = force;
 	}
 
-	public void crawl() {
+	public void crawl(String username) {
 		try {
-			if (!isComplete()) {
-				log.info("Storing " + type + " for " + u);
-				saveList();
+			if (force || !isComplete()) {
+				log.info("Storing " + type + " for " + u + "(@" + username
+						+ ").");
+				saveList(username);
 				setComplete();
 
-				log.info("Finished storing " + type + " for " + u);
+				log.info("Finished storing " + type + " for " + u + "(@"
+						+ username + ").");
 			}
 		} catch (Exception e) {
+			e.printStackTrace();
 		}
 	}
 
@@ -43,15 +49,15 @@ public class UserAdjacencyListCrawler {
 			return status.isFollowerComplete();
 	}
 
-	private void saveList() throws Exception {
+	private void saveList(String username) throws Exception {
 		CrawlerConfiguration config = CrawlerConfiguration.getCurrent();
 		long next = -1;
 		int cont = 0;
 		if (status.has("FriendCrawlCursor_" + type)) {
 			next = Long.valueOf(status.get("FriendCrawlCursor_" + type));
 			cont = Integer.valueOf(status.get("FriendCrawlPosition_" + type));
-			log.info("Resuming friend crawling(" + type + ") for " + u
-					+ " on cursor " + next);
+			log.info("Resuming friend crawling(" + type + ") for " + u + "(@"
+					+ username + ")." + " on cursor " + next);
 		}
 
 		TwitterStore store = config.getStore();
@@ -60,9 +66,10 @@ public class UserAdjacencyListCrawler {
 			ids = CrawlerUtil.get(new GetFriendsRequest(type, u, next));
 
 			if (ids != null) {
-				if (log.isDebugEnabled())
-					log.debug("Obtained " + ids.getIDs().length + " friends ("
-							+ type + ") for user " + u);
+				// if (log.isDebugEnabled())
+				log.info("Obtained " + ids.getIDs().length + " friends ("
+						+ "(@" + username + ")." + type + ") for user " + u
+						+ "(@" + username + ").");
 				store.addAdjacency(u, cont, type, ids.getIDs());
 				cont++;
 				if (ids.hasNext()) {
