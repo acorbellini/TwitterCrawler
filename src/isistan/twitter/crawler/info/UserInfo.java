@@ -2,6 +2,9 @@ package isistan.twitter.crawler.info;
 
 import java.sql.Date;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+
 public class UserInfo {
 	public long uid;
 	public String scn;
@@ -141,13 +144,35 @@ public class UserInfo {
 
 	@Override
 	public String toString() {
-		return "UserInfo [uid=" + uid + ", scn=" + scn + ", name=" + name
-				+ ", desc=" + desc + ", lang=" + lang + ", date=" + date
-				+ ", loc=" + loc + ", timezone=" + timezone + ", utc=" + utc
-				+ ", followees=" + followees + ", followers=" + followers
-				+ ", favs=" + favs + ", listed=" + listed + ", tweets="
-				+ tweets + ", verified=" + verified + ", protectd=" + protectd
-				+ "]";
+		JsonArray list = new JsonArray();
+		JsonObject obj = new JsonObject();
+		obj.addProperty("uid", uid);
+		obj.addProperty("scn", scn);
+		obj.addProperty("name", name);
+		obj.addProperty("desc", desc);
+		obj.addProperty("lang", lang);
+		obj.addProperty("date", date.toString());
+		obj.addProperty("loc", loc);
+		obj.addProperty("timezone", timezone);
+		obj.addProperty("utc", utc);
+		obj.addProperty("followees", followees);
+		obj.addProperty("followers", followers);
+		obj.addProperty("favs", favs);
+		obj.addProperty("listed", listed);
+		obj.addProperty("tweets", tweets);
+		obj.addProperty("verified", verified);
+		obj.addProperty("protectd", protectd);
+		list.add(obj);
+		JsonObject ret = new JsonObject();
+		ret.add("table", list);
+		return ret.toString();
+		// return "UserInfo [uid=" + uid + ", scn=" + scn + ", name=" + name
+		// + ", desc=" + desc + ", lang=" + lang + ", date=" + date
+		// + ", loc=" + loc + ", timezone=" + timezone + ", utc=" + utc
+		// + ", followees=" + followees + ", followers=" + followers
+		// + ", favs=" + favs + ", listed=" + listed + ", tweets="
+		// + tweets + ", verified=" + verified + ", protectd=" + protectd
+		// + "]";
 	}
 
 }

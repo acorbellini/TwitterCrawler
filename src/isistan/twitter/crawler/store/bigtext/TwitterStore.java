@@ -59,14 +59,20 @@ public class TwitterStore {
 
 	private Properties ltProp;
 	private File file;
+	private boolean sync;
 
 	public TwitterStore(File file) throws Exception {
+		this(file, true);
+	}
+
+	public TwitterStore(File file, boolean sync) throws Exception {
+		this.sync = sync;
 		this.file = file;
 		this.ltProp = CrawlerUtil.openProperties(file + "/LatestCrawled.prop");
 
 		tweet_key_format = tweetFormat();
 		tweets_file = createSorted(file, "tweets", tweet_key_format,
-				8 * 1024 * 1024);
+				32 * 1024 * 1024);
 
 		favs_key_format = tweetFormat();
 		favs_file = createSorted(file, "favs", favs_key_format, 8 * 1024 * 1024);
@@ -81,7 +87,7 @@ public class TwitterStore {
 
 		followers_key_format = adjFormat();
 		followers_file = createSorted(file, "followers", followers_key_format,
-				8 * 1024 * 1024);
+				32 * 1024 * 1024);
 
 		status_key_format = statusFormat();
 		status_file = createSorted(file, "status", status_key_format,
@@ -129,9 +135,8 @@ public class TwitterStore {
 		return SortedLevelFile.open(
 				file.getPath() + "/" + name,
 				new LevelOptions().setFormat(tweet_key_format2)
-						.setSyncMemtable(true).setMemTableSize(mem)
-						.setBaseSize(20 * 1024 * 1024).setMaxLevel0Files(4)
-						.setCompactLevel0Threshold(4).setMaxLevelFiles(10)
+						.setSyncMemtable(sync).setMemTableSize(mem)
+						.setBaseSize(20 * 1024 * 1024).setMaxLevelFiles(10)
 						.setMaxBlockSize(512 * 1024)
 						.setCompressed(CompressionType.BZIP.getComp()));
 	}
@@ -248,14 +253,23 @@ public class TwitterStore {
 				new String[] { "uid" });
 	}
 
-	public void saveAdjacency(Long user, ListType type, ListReader listReader,
+	public void saveAdjacents(Long user, ListType type, ListReader listReader,
 			boolean skipCheck) throws Exception {
-		TLongArrayList adj = new TLongArrayList();
+		int cont = 0;
+		TLongArrayList adj = null;
 		while (listReader.hasNext()) {
+			if (adj == null)
+				adj = new TLongArrayList();
+			else if (adj.size() > 1000) {
+				saveAdjacent(user, cont, type, skipCheck, adj.toArray());
+				cont++;
+				adj.clear();
+			}
 			Long f = (Long) listReader.next();
 			adj.add(f);
 		}
-		saveAdjacent(user, 0, type, skipCheck, adj.toArray());
+		if (adj != null)
+			saveAdjacent(user, cont, type, skipCheck, adj.toArray());
 	}
 
 	public void saveAdjacent(Long user, int listid, ListType type,
@@ -275,8 +289,8 @@ public class TwitterStore {
 		}
 	}
 
-	public void saveCompactedTweets(Long user, TweetType type,
-			TweetReader tweetReader, boolean skipCheck) throws Exception {
+	public void saveTweets(Long user, TweetType type, TweetReader tweetReader,
+			boolean skipCheck) throws Exception {
 		while (tweetReader.hasNext()) {
 			Tweet tweet = (Tweet) tweetReader.next();
 			saveTweet(user, type, skipCheck, tweet);

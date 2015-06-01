@@ -19,6 +19,9 @@ jQuery(function($, undefined) {
 													if (list.length == 0)
 														term.echo("No Records");
 													else {
+														term
+																.echo(list.length
+																		+ " of records.");
 														var first = true;
 														var table = "<table class=\"compact\" >";
 														for ( var index in list) {
@@ -52,6 +55,7 @@ jQuery(function($, undefined) {
 																			raw : true,
 																			finalize : function(
 																					div) {
+
 																				div
 																						.css(
 																								"background-color",
@@ -66,9 +70,17 @@ jQuery(function($, undefined) {
 																						.DataTable(
 																								{
 																									"autoWidth" : true,
-																									"scrollY" : 250,
 																									"scrollX" : true,
-																									"searching" : false
+																									"scrollCollapse" : true
+																								});
+																				$(
+																						div
+																								.find("input"))
+																						.on(
+																								"click",
+																								function() {
+																									term
+																											.focus(false);
 																								});
 
 																			}

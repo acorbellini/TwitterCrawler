@@ -21,7 +21,7 @@ public class TweetReader implements Iterator<Tweet> {
 		this.user = user;
 		this.t = tFile;
 		try {
-			reader = new CSVReader(new FileReader(t), true, 1024 * 1024);
+			reader = new CSVReader(new FileReader(t), true, 5 * 1024 * 1024);
 			curr = getNext();
 		} catch (Exception e) {
 		}

@@ -25,24 +25,23 @@
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-dependency-plugin</artifactId>
-				<version>2.7</version>
+				<artifactId>maven-shade-plugin</artifactId>
+				<version>2.1</version>
 				<executions>
 					<execution>
-						<id>copy-dependencies</id>
 						<phase>package</phase>
 						<goals>
-							<goal>copy-dependencies</goal>
+							<goal>shade</goal>
 						</goals>
-						<configuration>
-							<outputDirectory>${project.basedir}/dist/lib</outputDirectory>
-							<overWriteReleases>true</overWriteReleases>
-							<overWriteSnapshots>true</overWriteSnapshots>
-							<overWriteIfNewer>true</overWriteIfNewer>
-						</configuration>
 					</execution>
 				</executions>
 			</plugin>
+			<!-- <plugin> <groupId>org.apache.maven.plugins</groupId> <artifactId>maven-dependency-plugin</artifactId> 
+				<version>2.7</version> <executions> <execution> <id>copy-dependencies</id> 
+				<phase>package</phase> <goals> <goal>copy-dependencies</goal> </goals> <configuration> 
+				<outputDirectory>${project.basedir}/dist/lib</outputDirectory> <overWriteReleases>true</overWriteReleases> 
+				<overWriteSnapshots>true</overWriteSnapshots> <overWriteIfNewer>true</overWriteIfNewer> 
+				</configuration> </execution> </executions> </plugin> -->
 			<plugin>
 				<artifactId>maven-antrun-plugin</artifactId>
 				<executions>
@@ -50,8 +49,8 @@
 						<phase>package</phase>
 						<configuration>
 							<tasks>
-								<copy todir="${project.basedir}/dist"
-									file="${project.build.directory}/${project.build.finalName}.jar" />
+								<copy tofile="${project.basedir}/dist/TwitterCrawler-1.0.jar"
+									file="${project.build.directory}/${project.build.finalName}-shaded.jar" />
 								<tar destfile="${project.basedir}/release/twitter-crawler.tar.gz"
 									compression="gzip" basedir="${project.basedir}/dist/" />
 							</tasks>
@@ -96,11 +95,6 @@
 			<version>1.4.180</version>
 		</dependency>
 		<dependency>
-			<groupId>BigTextFormat</groupId>
-			<artifactId>BigTextFormat</artifactId>
-			<version>1.0</version>
-		</dependency>
-		<dependency>
 			<groupId>org.twitter4j</groupId>
 			<artifactId>twitter4j-core</artifactId>
 			<version>4.0.2</version>
@@ -116,14 +110,19 @@
 			<version>2.4.3</version>
 		</dependency>
 		<dependency>
-			<groupId>com.sun.jersey</groupId>
-			<artifactId>jersey-server</artifactId>
-			<version>1.19</version>
-		</dependency>
-		<dependency>
 			<groupId>com.google.code.gson</groupId>
 			<artifactId>gson</artifactId>
 			<version>2.3.1</version>
+		</dependency>
+		<dependency>
+			<groupId>BigTextFormat</groupId>
+			<artifactId>BigTextFormat</artifactId>
+			<version>1.0</version>
+		</dependency>
+		<dependency>
+			<groupId>com.sun.jersey</groupId>
+			<artifactId>jersey-bundle</artifactId>
+			<version>1.18.3</version>
 		</dependency>
 	</dependencies>
 </project>

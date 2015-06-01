@@ -35,18 +35,17 @@ public class Migrator {
 		new Migrator(args[0], args[1], args.length == 3 ? args[2] : null).run();
 	}
 
-	private static final int MAX_THREADS = 10;
-	private static final int MAX_SUB_THREADS = 20;
-	private static final int MAX_QUEUED_THREADS = 10;
+	private static final int MAX_THREADS = 50;
+	// private static final int MAX_SUB_THREADS = 50;
 
 	private static final int COMPACT_SIZE = 100000;
-	ExecutorService TweetsExecutor = createExec("Tweet");
-	ExecutorService FavsExecutor = createExec("Favs");
-	ExecutorService FolloweesExecutor = createExec("Followees");
-	ExecutorService FollowersExecutor = createExec("Followers");
-	ExecutorService InfoExecutor = createExec("Info");
+	// ExecutorService TweetsExecutor = createExec("Tweet");
+	// ExecutorService FavsExecutor = createExec("Favs");
+	// ExecutorService FolloweesExecutor = createExec("Followees");
+	// ExecutorService FollowersExecutor = createExec("Followers");
+	// ExecutorService InfoExecutor = createExec("Info");
 
-	ExecutorService StatusExecutor = createExec("Status");
+	// ExecutorService StatusExecutor = createExec("Status");
 
 	long plainSizeOnDisk = 0;
 	long followeeSize = 0;
@@ -73,7 +72,9 @@ public class Migrator {
 		else
 			this.folder = new CrawlFolder(folder);
 		// this.store = new MapDBStore(new File(db));
-		this.store = new TwitterStore(new File(db));
+		this.store = new TwitterStore(new File(db), false); // WARNING, sync is
+															// false, crashes
+															// might lose data.
 		this.shell = new TwitterStoreShell(store, 8080);
 		shell.start();
 		this.statusDir = new File(folder + "/crawl-status");
@@ -89,19 +90,19 @@ public class Migrator {
 		}
 	}
 
-	private ExecutorService createExec(final String name) {
-		return Executors.newFixedThreadPool(MAX_SUB_THREADS,
-				new ThreadFactory() {
-
-					@Override
-					public Thread newThread(Runnable r) {
-						ThreadFactory tf = Executors.defaultThreadFactory();
-						Thread t = tf.newThread(r);
-						t.setName("User Converter Thread for " + name);
-						return t;
-					}
-				});
-	}
+	// private ExecutorService createExec(final String name) {
+	// return Executors.newFixedThreadPool(MAX_SUB_THREADS,
+	// new ThreadFactory() {
+	//
+	// @Override
+	// public Thread newThread(Runnable r) {
+	// ThreadFactory tf = Executors.defaultThreadFactory();
+	// Thread t = tf.newThread(r);
+	// t.setName("User Converter Thread for " + name);
+	// return t;
+	// }
+	// });
+	// }
 
 	private void run() throws Exception {
 		// Profiler profiler = new Profiler();
@@ -122,14 +123,14 @@ public class Migrator {
 							return t;
 						}
 					});
-			final Semaphore outer = new Semaphore(MAX_QUEUED_THREADS);
+			final Semaphore outer = new Semaphore(MAX_THREADS);
 
 			boolean found = false;
 
 			long rateTime = System.currentTimeMillis();
 
 			for (final UserFolder userFolder : folder) {
-				if (userFolder.getUser().equals(lastUser)) {
+				if (lastUser == null || userFolder.getUser().equals(lastUser)) {
 					found = true;
 				}
 
@@ -146,7 +147,7 @@ public class Migrator {
 					rateTime = System.currentTimeMillis();
 				}
 				if ((cont + 1) % COMPACT_SIZE == 0) {
-					while (outer.availablePermits() != MAX_QUEUED_THREADS) {
+					while (outer.availablePermits() != MAX_THREADS) {
 						System.out.println("Waiting to start compacting...");
 						Thread.sleep(10000);
 					}
@@ -173,12 +174,13 @@ public class Migrator {
 					@Override
 					public void run() {
 						try {
-							Semaphore inner = new Semaphore(-5);
-							saveTweets(userFolder, inner);
-							saveAdjacency(userFolder, inner);
-							saveInfo(userFolder, inner);
-							saveStatus(userFolder.getUser(), statusDir, inner);
-							inner.acquire();
+							// Semaphore inner = new Semaphore(-5);
+							saveTweets(userFolder);// , inner);
+							saveAdjacency(userFolder);// , inner);
+							saveInfo(userFolder);// , inner);
+							saveStatus(userFolder.getUser(), statusDir);// ,
+																		// inner);
+							// inner.acquire();
 							synchronized (migrated) {
 								Long u = migrated.get(0);
 								done.add(userFolder.getUser());
@@ -213,20 +215,22 @@ public class Migrator {
 			}
 			exec.shutdown();
 			exec.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
-			FavsExecutor.shutdown();
-			TweetsExecutor.shutdown();
-			StatusExecutor.shutdown();
-			InfoExecutor.shutdown();
-			FolloweesExecutor.shutdown();
-			FollowersExecutor.shutdown();
+			// FavsExecutor.shutdown();
+			// TweetsExecutor.shutdown();
+			// StatusExecutor.shutdown();
+			// InfoExecutor.shutdown();
+			// FolloweesExecutor.shutdown();
+			// FollowersExecutor.shutdown();
 
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
-			System.out.println("Tamaño total en formato plano: "
-					+ plainSizeOnDisk / (1024 * 1024) + " MB ");
+			System.out.println("Closing Store");
 			store.close();
 			shell.stop();
+
+			System.out.println("Tamaño total en formato plano: "
+					+ plainSizeOnDisk / (1024 * 1024) + " MB ");
 
 		}
 		System.out.println("Tiempo de exportación: "
@@ -235,81 +239,79 @@ public class Migrator {
 
 	}
 
-	private void saveAdjacency(final UserFolder userFolder, final Semaphore sem) {
-		FolloweesExecutor.execute(new Runnable() {
-
-			@Override
-			public void run() {
-				try {
-					// if (!store.hasAdjacency(userFolder.getUser(),
-					// ListType.FOLLOWEES)) {
-					// long[] followees =
-					// followeeSize += followees.length;
-					store.saveAdjacency(userFolder.getUser(),
-							ListType.FOLLOWEES,
-							StoreUtil.listReader(userFolder.getFollowees()),
-							skipChecking);
-					// }
-				} catch (Exception e) {
-					e.printStackTrace();
-					System.out.println("Exception storing FOLLOWEES("
-							+ userFolder.getUser() + "): " + e.getClass() + ":"
-							+ e.getMessage() + ":" + e.getCause());
-				}
-				sem.release();
-			}
-		});
-		FollowersExecutor.execute(new Runnable() {
-
-			@Override
-			public void run() {
-				try {
-					// if (!store.hasAdjacency(userFolder.getUser(),
-					// ListType.FOLLOWERS)) {
-					store.saveAdjacency(userFolder.getUser(),
-							ListType.FOLLOWERS,
-							StoreUtil.listReader(userFolder.getFollowers()),
-							skipChecking);
-					// }
-				} catch (Exception e) {
-					e.printStackTrace();
-					System.out.println("Exception storing FOLLOWERS("
-							+ userFolder.getUser() + "): " + e.getClass() + ":"
-							+ e.getMessage() + ":" + e.getCause());
-				}
-				sem.release();
-			}
-		});
+	private void saveAdjacency(final UserFolder userFolder) {
+		// FolloweesExecutor.execute(new Runnable() {
+		//
+		// @Override
+		// public void run() {
+		try {
+			// if (!store.hasAdjacency(userFolder.getUser(),
+			// ListType.FOLLOWEES)) {
+			// long[] followees =
+			// followeeSize += followees.length;
+			store.saveAdjacents(userFolder.getUser(), ListType.FOLLOWEES,
+					StoreUtil.listReader(userFolder.getFollowees()),
+					skipChecking);
+			// }
+		} catch (Exception e) {
+			e.printStackTrace();
+			System.out.println("Exception storing FOLLOWEES("
+					+ userFolder.getUser() + "): " + e.getClass() + ":"
+					+ e.getMessage() + ":" + e.getCause());
+		}
+		// sem.release();
+		// }
+		// });
+		// FollowersExecutor.execute(new Runnable() {
+		//
+		// @Override
+		// public void run() {
+		try {
+			// if (!store.hasAdjacency(userFolder.getUser(),
+			// ListType.FOLLOWERS)) {
+			store.saveAdjacents(userFolder.getUser(), ListType.FOLLOWERS,
+					StoreUtil.listReader(userFolder.getFollowers()),
+					skipChecking);
+			// }
+		} catch (Exception e) {
+			e.printStackTrace();
+			System.out.println("Exception storing FOLLOWERS("
+					+ userFolder.getUser() + "): " + e.getClass() + ":"
+					+ e.getMessage() + ":" + e.getCause());
+		}
+		// sem.release();
+		// }
+		// });
 
 	}
 
-	private void saveInfo(final UserFolder userFolder, final Semaphore sem) {
-		InfoExecutor.execute(new Runnable() {
+	private void saveInfo(final UserFolder userFolder) {
+		// InfoExecutor.execute(new Runnable() {
+		//
+		// @Override
+		// public void run() {
+		try {
+			// if (!store.hasInfo(userFolder.getUser())) {
+			UserInfo info = StoreUtil.toInfo(userFolder.getInfo());
+			if (info == null)
+				// System.out.println("Info for user "
+				// + userFolder.getUser()
+				// + " not found or badly parsed.");
+				;
+			else {
 
-			@Override
-			public void run() {
-				try {
-					// if (!store.hasInfo(userFolder.getUser())) {
-					UserInfo info = StoreUtil.toInfo(userFolder.getInfo());
-					if (info == null)
-						// System.out.println("Info for user "
-						// + userFolder.getUser()
-						// + " not found or badly parsed.");
-						;
-					else {
-
-						store.saveUserInfo(info, skipChecking);
-					}
-					// }
-				} catch (Exception e) {
-					e.printStackTrace();
-					System.out.println("Exception storing INFO ("
-							+ userFolder.getUser() + "): " + e.getClass() + ":"
-							+ e.getMessage() + ":" + e.getCause());
-				}
-				sem.release();
+				store.saveUserInfo(info, skipChecking);
 			}
-		});
+			// }
+		} catch (Exception e) {
+			e.printStackTrace();
+			System.out.println("Exception storing INFO ("
+					+ userFolder.getUser() + "): " + e.getClass() + ":"
+					+ e.getMessage() + ":" + e.getCause());
+		}
+		// sem.release();
+		// }
+		// });
 
 	}
 
@@ -327,78 +329,84 @@ public class Migrator {
 		}
 	}
 
-	protected void saveStatus(final Long user, final File userStatus,
-			final Semaphore sem) {
-		StatusExecutor.execute(new Runnable() {
-
-			@Override
-			public void run() {
-				try {
-					// if (!store.hasStatus(user)) {
-					Properties prop = new Properties();
-					prop.load(new FileInputStream(userStatus.getPath() + "/"
-							+ user + ".prop"));
-					Map<String, String> map = new HashMap<>();
-					for (Entry<Object, Object> e : prop.entrySet()) {
-						map.put(e.getKey().toString(), e.getValue().toString());
-					}
-					store.saveUserStatus(user, map, skipChecking);
-					// }
-				} catch (Exception e) {
-					e.printStackTrace();
-					System.out.println(e.getClass() + ":" + e.getMessage()
-							+ ":" + e.getCause());
-				} finally {
-					sem.release();
-				}
-
+	protected void saveStatus(final Long user, final File userStatus) {
+		// StatusExecutor.execute(new Runnable() {
+		//
+		// @Override
+		// public void run() {
+		try {
+			// if (!store.hasStatus(user)) {
+			Properties prop = new Properties();
+			String name = userStatus.getPath() + "/" + user + ".prop";
+			if (!new File(name).exists()) {
+				System.out.println("Properties file not found for " + user
+						+ ".");
+				return;
 			}
-		});
+			prop.load(new FileInputStream(name));
+			Map<String, String> map = new HashMap<>();
+			for (Entry<Object, Object> e : prop.entrySet()) {
+				map.put(e.getKey().toString(), e.getValue().toString());
+			}
+			store.saveUserStatus(user, map, skipChecking);
+			// }
+		} catch (Exception e) {
+			e.printStackTrace();
+			System.out.println(e.getClass() + ":" + e.getMessage() + ":"
+					+ e.getCause());
+		} finally {
+			// sem.release();
+		}
+		//
+		// }
+		// });
 
 	}
 
-	private void saveTweets(final UserFolder userFolder, final Semaphore sem) {
-		TweetsExecutor.execute(new Runnable() {
-			@Override
-			public void run() {
-				try {
-					// if (!store.hasTweets(userFolder.getUser(),
-					// TweetType.TWEETS))
-					store.saveCompactedTweets(userFolder.getUser(),
-							TweetType.TWEETS, StoreUtil.tweetReader(
-									userFolder.getUser(),
-									userFolder.getTweets()), skipChecking);
-					// store.compactTweets(userFolder.getUser(),
-					// TweetType.TWEETS);
-				} catch (Exception e) {
-					e.printStackTrace();
-					System.out.println("Exception storing TWEETS("
-							+ userFolder.getUser() + "): " + e.getClass() + ":"
-							+ e.getMessage() + ":" + e.getCause());
-				}
-				sem.release();
-			}
-		});
-		FavsExecutor.execute(new Runnable() {
-			@Override
-			public void run() {
-				try {
-					// if (!store.hasTweets(userFolder.getUser(),
-					// TweetType.FAVORITES))
-					store.saveCompactedTweets(userFolder.getUser(),
-							TweetType.FAVORITES,
-							StoreUtil.tweetReader(userFolder.getUser(),
-									userFolder.getFavs()), skipChecking);
-					// store.compactTweets(userFolder.getUser(),
-					// TweetType.FAVORITES);
-				} catch (Exception e) {
-					e.printStackTrace();
-					System.out.println("Exception storing FAVORITES("
-							+ userFolder.getUser() + "): " + e.getClass() + ":"
-							+ e.getMessage() + ":" + e.getCause());
-				}
-				sem.release();
-			}
-		});
+	private void saveTweets(final UserFolder userFolder) {
+		// TweetsExecutor.execute(new Runnable() {
+		// @Override
+		// public void run() {
+		try {
+			// if (!store.hasTweets(userFolder.getUser(),
+			// TweetType.TWEETS))
+			store.saveTweets(
+					userFolder.getUser(),
+					TweetType.TWEETS,
+					StoreUtil.tweetReader(userFolder.getUser(),
+							userFolder.getTweets()), skipChecking);
+			// store.compactTweets(userFolder.getUser(),
+			// TweetType.TWEETS);
+		} catch (Exception e) {
+			e.printStackTrace();
+			System.out.println("Exception storing TWEETS("
+					+ userFolder.getUser() + "): " + e.getClass() + ":"
+					+ e.getMessage() + ":" + e.getCause());
+		}
+		// sem.release();
+		// }
+		// });
+		// FavsExecutor.execute(new Runnable() {
+		// @Override
+		// public void run() {
+		try {
+			// if (!store.hasTweets(userFolder.getUser(),
+			// TweetType.FAVORITES))
+			store.saveTweets(
+					userFolder.getUser(),
+					TweetType.FAVORITES,
+					StoreUtil.tweetReader(userFolder.getUser(),
+							userFolder.getFavs()), skipChecking);
+			// store.compactTweets(userFolder.getUser(),
+			// TweetType.FAVORITES);
+		} catch (Exception e) {
+			e.printStackTrace();
+			System.out.println("Exception storing FAVORITES("
+					+ userFolder.getUser() + "): " + e.getClass() + ":"
+					+ e.getMessage() + ":" + e.getCause());
+		}
+		// sem.release();
+		// }
+		// });
 	}
 }

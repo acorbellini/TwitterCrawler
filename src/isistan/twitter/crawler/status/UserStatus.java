@@ -9,6 +9,9 @@ import isistan.twitter.crawler.tweet.UserTweetsCrawler;
 
 import java.util.Map;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+
 public class UserStatus {
 
 	protected long user;
@@ -151,6 +154,30 @@ public class UserStatus {
 
 	public void setTweetsComplete() throws Exception {
 		set("TweetInfoComplete", "True");
+	}
+
+	@Override
+	public String toString() {
+		JsonObject ret = new JsonObject();
+		try {
+			JsonArray arr = new JsonArray();
+			JsonObject obj = new JsonObject();
+			obj.addProperty("complete", isComplete());
+			obj.addProperty("completed", isCompleted());
+			obj.addProperty("disabled", isDisabled());
+			obj.addProperty("escaped", isEscaped());
+			obj.addProperty("fav_complete", isFavoriteComplete());
+			obj.addProperty("followee_complete", isFolloweeComplete());
+			obj.addProperty("follower_complete", isFollowerComplete());
+			obj.addProperty("info_complete", isInfoComplete());
+			obj.addProperty("protected", isProtected());
+			obj.addProperty("suspended", isSuspended());
+			arr.add(obj);
+			ret.add("table", arr);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return ret.toString();
 	}
 
 }
