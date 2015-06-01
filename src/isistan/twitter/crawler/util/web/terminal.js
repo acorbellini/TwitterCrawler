@@ -21,7 +21,7 @@ jQuery(function($, undefined) {
 													else {
 														term
 																.echo(list.length
-																		+ " of records.");
+																		+ " records.");
 														var first = true;
 														var table = "<table class=\"compact\" >";
 														for ( var index in list) {
