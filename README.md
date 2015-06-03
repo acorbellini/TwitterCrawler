@@ -6,8 +6,10 @@ oauthdir=a list of directories containing Twitter4J oauth files separated by , .
 input=a text file containing a set of user ids  
 output=outputDir  
 threads=number of threads  
-// Optional: crawl=FOLLOWEES,FOLLOWERS,FAVORITES,TWEETS  
-// Optional: forceRecrawl=true  
+// Optional: crawl=FOLLOWEES,FOLLOWERS,FAVORITES,TWEETS (this is the default config)
+// Optional: forceRecrawl=false(default)/true  
+// "lang" is a language detected from analyzing tweets using textcat.
+// Optional: lang=(it can be: english(by default), any, other language, you can try crawl a user and see the language code)
   
 # Oauth Files
 An oauth file must contain the following information ( you must have an account on https://apps.twitter.com/ ):  
@@ -27,4 +29,9 @@ store.getAdjacency(UID, ListType.FOLLOWEES/FOLLOWEERS)
 store.getUserInfo(UID)  
 store.getUserStatus(UID)  
 store.getUserList()  
+
+# Source
+
+It's a maven project. In eclipse, import->existing maven projects. To build: Run As->maven build-> goal: package. It creates an uber-jar in the dist folder.
+
 
