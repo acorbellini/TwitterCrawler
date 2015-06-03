@@ -37,9 +37,9 @@ public class CrawlerConfiguration {
 
 	// Claves del property
 
-	public static final Integer MIN_TWEETS = 10;
+	public static final String MIN_TWEETS = "min_tweets";
 
-	public static final Integer MIN_FOLLOWEES = 10;
+	public static final String MIN_FOLLOWEES = "min_followees";
 
 	public static final String CONFIGDIR = "configdir";
 
@@ -58,6 +58,8 @@ public class CrawlerConfiguration {
 	private static final String LANGUAGE = "lang";
 
 	private static final String SYNC = "syncDB";
+
+	private static final String USER_LANGUAGE = "user_lang";
 
 	private static CrawlerConfiguration current = null;
 
@@ -101,6 +103,12 @@ public class CrawlerConfiguration {
 	private TwitterStore store;
 
 	private Long latestCrawled;
+
+	private String userLang;
+
+	private int minFollowees;
+
+	private int minTweets;
 
 	private CrawlerConfiguration(Properties config) throws Exception {
 		outputdir = config.getProperty(OUTPUTDIR);
@@ -169,6 +177,16 @@ public class CrawlerConfiguration {
 
 		lang = config.getProperty(LANGUAGE) == null ? "english" : config
 				.getProperty(LANGUAGE);
+
+		userLang = config.getProperty(USER_LANGUAGE) == null ? "en" : config
+				.getProperty(USER_LANGUAGE);
+
+		minTweets = config.getProperty(MIN_TWEETS) == null ? 10 : Integer
+				.valueOf(config.getProperty(MIN_TWEETS));
+
+		minFollowees = config.getProperty(MIN_FOLLOWEES) == null ? 10 : Integer
+				.valueOf(config.getProperty(MIN_FOLLOWEES));
+
 		// if (latestCrawled == null) {
 		// minimumAlreadyCrawled.add(users.peek() - 1);
 		// latestCrawled = users.peek() - 1;
@@ -247,11 +265,11 @@ public class CrawlerConfiguration {
 	}
 
 	public int getMinFolloweesToFilter() {
-		return MIN_FOLLOWEES;
+		return minFollowees;
 	}
 
 	public int getMinTweetsToFilter() {
-		return MIN_TWEETS;
+		return minTweets;
 	}
 
 	public int getNumAccounts() {
@@ -341,6 +359,10 @@ public class CrawlerConfiguration {
 
 	public String getLanguage() {
 		return lang;
+	}
+
+	public String getUserLanguage() {
+		return userLang;
 	}
 
 }

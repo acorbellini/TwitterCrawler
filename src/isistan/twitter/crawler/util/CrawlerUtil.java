@@ -68,7 +68,8 @@ public class CrawlerUtil {
 		CrawlerConfiguration config = CrawlerConfiguration.getCurrent();
 		try {
 
-			if (!u.getLang().startsWith("en")) {
+			if (config.getUserLanguage().equals("any")
+					|| !u.getLang().startsWith(config.getUserLanguage())) {
 				log.info("User " + u.getId() + " was escaped because LANG is "
 						+ u.getLang());
 				return true;
@@ -140,9 +141,9 @@ public class CrawlerUtil {
 
 	public static synchronized void updateProperty(String k, String v,
 			Properties prop, String propPath) throws Exception {
-		
+
 		prop.setProperty(k, v);
-		
+
 		File f = new File(propPath);
 		if (!f.exists())
 			f.createNewFile();
