@@ -1,5 +1,5 @@
 jQuery(function($, undefined) {
-	$('#terminal')
+	var term = $('#terminal')
 			.terminal(
 					function(command, term) {
 						if (command !== '') {
@@ -19,9 +19,8 @@ jQuery(function($, undefined) {
 													if (list.length == 0)
 														term.echo("No Records");
 													else {
-														term
-																.echo(list.length
-																		+ " records.");
+														term.echo(list.length
+																+ " records.");
 														var first = true;
 														var table = "<table class=\"compact\" >";
 														for ( var index in list) {
@@ -113,6 +112,9 @@ jQuery(function($, undefined) {
 						prompt : 'groovy > ',
 						height : "100%"
 					});
+	$(document).on("click", function() {
+		term.focus(true);
+	})
 });
 $(document).tooltip();
 /*

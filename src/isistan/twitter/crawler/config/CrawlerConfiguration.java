@@ -55,7 +55,13 @@ public class CrawlerConfiguration {
 
 	private static final String STORE = "store";
 
+	private static final String LANGUAGE = "lang";
+
 	private static CrawlerConfiguration current = null;
+
+	HashSet<Long> done = new HashSet<>();
+
+	private String lang;
 
 	private int numAccounts;
 
@@ -156,6 +162,8 @@ public class CrawlerConfiguration {
 
 		latestCrawled = store.getLatestCrawled();
 
+		lang = config.getProperty(LANGUAGE) == null ? "english" : config
+				.getProperty(LANGUAGE);
 		// if (latestCrawled == null) {
 		// minimumAlreadyCrawled.add(users.peek() - 1);
 		// latestCrawled = users.peek() - 1;
@@ -277,8 +285,6 @@ public class CrawlerConfiguration {
 		return forceRecrawl;
 	}
 
-	HashSet<Long> done = new HashSet<>();
-
 	public void updateLatestCrawled(final long user) throws Exception {
 		synchronized (minimumAlreadyCrawled) {
 			Long u = minimumAlreadyCrawled.get(0);
@@ -326,6 +332,10 @@ public class CrawlerConfiguration {
 
 	public boolean isCrawlFollowees() {
 		return crawlFollowees;
+	}
+
+	public String getLanguage() {
+		return lang;
 	}
 
 }

@@ -44,7 +44,8 @@ public class UserCrawler {
 			return;
 		}
 
-		if (config.isForceRecrawl() || !userProp.isInfoComplete()) {
+		if (config.getStore().getUserInfo(u) == null || config.isForceRecrawl()
+				|| !userProp.isInfoComplete()) {
 			log.info("Storing User Info for " + u);
 			try {
 				userProp.getInfoCrawler().crawl();
@@ -52,12 +53,18 @@ public class UserCrawler {
 				e.printStackTrace();
 			}
 			log.info("Finished storing User Info for " + u);
-		}
+		} else
+			log.info("Skipping Info for user " + u);
 		List<Future<?>> futs = new ArrayList<>();
 
 		if (!userProp.isDisabled()) {
-			final String username = config.getStore().getUserInfo(u).scn;
-
+			String uname = "NONAMEFOUND";
+			try {
+				uname = config.getStore().getUserInfo(u).scn;
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			final String username = uname;
 			if (config.isCrawlFollowees())
 				futs.add(execUser.submit(new Runnable() {
 
@@ -89,8 +96,8 @@ public class UserCrawler {
 
 					@Override
 					public void run() {
-						userProp.getTweetCrawler(config.isForceRecrawl())
-								.crawl(username);
+						userProp.getTweetCrawler(config.isForceRecrawl(),
+								config.getLanguage()).crawl(username);
 					}
 				}));
 			else
@@ -101,8 +108,8 @@ public class UserCrawler {
 
 					@Override
 					public void run() {
-						userProp.getFavCrawler(config.isForceRecrawl()).crawl(
-								username);
+						userProp.getFavCrawler(config.isForceRecrawl(),
+								config.getLanguage()).crawl(username);
 					}
 				}));
 			else

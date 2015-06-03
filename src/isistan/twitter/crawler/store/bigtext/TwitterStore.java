@@ -319,7 +319,7 @@ public class TwitterStore {
 			uinfo_file.put(rec, StoreUtil.userInfoToBytes(info));
 	}
 
-	public void saveUserStatus(long user, Map<String, String> map,
+	public synchronized void saveUserStatus(long user, Map<String, String> map,
 			boolean skipCheck) throws Exception {
 		Record rec = status_key_format.newRecord().set("uid", user);
 		ByteBuffer buffer = new ByteBuffer();

@@ -23,13 +23,15 @@ public class UserTweetsCrawler {
 
 	private Logger log = Logger.getLogger(UserTweetsCrawler.class);
 	private boolean force;
+	private String lang;
 
 	public UserTweetsCrawler(UserStatus status, long user, TweetType type,
-			boolean force) {
+			boolean force, String lang) {
 		this.status = status;
 		this.user = user;
 		this.type = type;
 		this.force = force;
+		this.lang = lang;
 	}
 
 	public void crawl(String username) {
@@ -100,19 +102,20 @@ public class UserTweetsCrawler {
 						@Override
 						public String toString() {
 							return "GetTweets - Type: " + type + " User: "
-									+ user+ "(@" + username + ")";
+									+ user + "(@" + username + ")";
 						}
 
 					});
 
-			if (type.equals(TweetType.TWEETS) && page == 1) {
+			if (stats != null
+					&& (!lang.equals("any") || (type.equals(TweetType.TWEETS) && page == 1))) {
 				StringBuilder b = new StringBuilder();
 				for (Status status : stats) {
 					b.append(" " + status.getText());
 				}
 				TextCategorizer cat = new TextCategorizer();
 				String[] list = cat.categorize(b.toString());
-				if (!list[0].equals("english")) {
+				if (!list[0].equals(lang)) {
 					log.info("Escaping " + user + "(@" + username + ")"
 							+ " identified language as " + list[0]);
 					status.setEscaped();

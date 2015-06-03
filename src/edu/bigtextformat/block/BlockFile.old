@@ -1,0 +1,333 @@
+package edu.bigtextformat.block;
+
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.Callable;
+
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+
+import edu.bigtextformat.header.Header;
+import edu.bigtextformat.raw.RawFile;
+import edu.jlime.util.DataTypeUtils;
+import edu.jlime.util.compression.CompressionType;
+import edu.jlime.util.compression.Compressor;
+
+public class BlockFile implements Closeable, Iterable<Block> {
+	public static BlockFile create(String path, BlockFileOptions opts,
+			Map<String, byte[]> headerData) throws Exception {
+		RawFile file = new RawFile(path, opts.trunc, opts.readOnly,
+				opts.appendOnly, opts.sync);
+		BlockFile ret = new BlockFile(file);
+		ret.minSize = opts.minSize;
+		ret.currentPos = file.length();
+		ret.enableCache = opts.enableCache;
+		if (file.length() == 0l) {
+			ret.reserve(8);
+			file.write(0, DataTypeUtils.longToByteArray(opts.magic));
+		}
+		if (file.length() == 8l || !opts.appendOnly) {
+
+			// headerBlock.setMemoryMapped(true);
+			// ret.header = Header.open(headerBlock);
+			Map<String, byte[]> map = new HashMap<>();
+			if (headerData != null)
+				map.putAll(headerData);
+
+			ret.header = new Header();
+			if (opts.comp != null) {
+				map.put("comp", new byte[] { opts.comp.getType().getId() });
+				ret.comp = opts.comp;
+				ret.setCompressed(opts.comp);
+			} else
+				map.put("comp", new byte[] { -1 });
+			map.put("minSize", DataTypeUtils.intToByteArray(opts.minSize));
+			ret.header = new Header(map);
+			Block b = ret.newFixedBlock(ret.header.toByteArray());
+			ret.header.setSize(b.size());
+
+		} else {
+			ret.header = new Header();
+		}
+
+		return ret;
+	}
+
+	public static BlockFile open(String path, BlockFileOptions opts)
+			throws Exception {
+		RawFile file = new RawFile(path, false, opts.readOnly, false, false);
+
+		BlockFile ret = new BlockFile(file);
+
+		ret.currentPos = file.length();
+		if (file.length() > 0l) {
+			// exists
+			ret.magic = file.readLong(0);
+			if (ret.magic != opts.magic)
+				throw new Exception("Wrong File Type expected "
+						+ new String(DataTypeUtils.longToByteArray(opts.magic))
+						+ " and got "
+						+ new String(DataTypeUtils.longToByteArray(ret.magic))
+						+ " for file " + path);
+		} else {
+			file.close();
+			throw new Exception("Corrupted File: File " + file.getFile()
+					+ " length is 0");
+		}
+		Block headerBlock = ret.getBlock(8l, -1, false);
+		// headerBlock.setFixed(true);
+		// headerBlock.setMemoryMapped(true);
+		ret.header = Header.open(headerBlock);
+
+		byte compression = ret.header.get("comp")[0];
+		if (compression != -1)
+			ret.comp = CompressionType.getByID(compression);
+		ret.minSize = DataTypeUtils.byteArrayToInt(ret.header.get("minSize"));
+		return ret;
+	}
+
+	// boolean reuseDeleted;
+
+	// TreeMap<Integer, List<Long>> deleted = new TreeMap<>();
+
+	public static BlockFile open(String path, long magicCheck) throws Exception {
+		return open(path, new BlockFileOptions().setMagic(magicCheck)
+				.setReadOnly(true));
+	}
+
+	private static final long MAX_CACHE_SIZE = 0;
+
+	private Cache<BlockID, Block> blocks = CacheBuilder.newBuilder()
+			.softValues().maximumSize(MAX_CACHE_SIZE).build();
+
+	private List<BlockPosChangeListener> blockPosChangeListeners = new ArrayList<>();
+
+	RawFile file;
+
+	private Header header;
+
+	long magic;
+
+	private int minSize;
+	private Compressor comp;
+
+	// private static WeakHashMap<Block, Boolean> current = new WeakHashMap<>();
+	//
+	// private static WeakHashMap<Long, Block> blocks = new WeakHashMap<>();
+
+	UUID id = UUID.randomUUID();
+
+	long currentPos = 0;
+
+	private boolean enableCache;
+
+	private BlockFile(RawFile file) {
+		this.file = file;
+	}
+
+	public void addPosListener(BlockPosChangeListener l) {
+		blockPosChangeListeners.add(l);
+	}
+
+	public long appendBlock(BlockFile orig, long pos, long long1)
+			throws IOException {
+		long s = reserve(long1);
+		this.file.copy(orig.getRawFile(), pos, long1, s);
+		return s;
+	}
+
+	public void close() throws IOException {
+		file.close();
+	}
+
+	public void delete() throws IOException {
+		file.delete();
+	}
+
+	public void flush() throws IOException {
+		file.sync();
+	}
+
+	public Block getBlock(long pos, boolean create) throws Exception {
+		return getBlock(pos, minSize, create);
+	}
+
+	private Block getBlock(final long pos, final int size, final boolean create)
+			throws Exception {
+		try {
+			Block res = null;
+			if (pos < 0) {
+				if (create)
+					res = newBlock(new byte[] {}, size, false, true);
+				else
+					throw new Exception(
+							"Position is negative and I wasn't told to create it.");
+				blocks.put(BlockID.create(id, res.getPos()), res);
+				return res;
+			} else {
+				BlockID bid = BlockID.create(id, pos);
+				try {
+					return blocks.get(bid, new Callable<Block>() {
+						@Override
+						public Block call() throws Exception {
+							if (pos > 0 && currentPos > pos)
+								return Block.read(BlockFile.this, pos);
+							else if (create)
+								return newBlock(new byte[] {}, size, false,
+										true);
+							throw new Exception();
+						}
+					});
+				} catch (Exception e) {
+					throw new MissingBlockException(pos, file);
+				}
+			}
+		} catch (MissingBlockException e) {
+			throw e;
+		} catch (Exception e) {
+			throw new CorruptedFileException(this, pos, e);
+		}
+	}
+
+	protected Block getFirstBlock() throws Exception {
+		return getBlock(getFirstBlockPos(), false);
+	}
+
+	public long getFirstBlockPos() {
+		return 8l + header.getSize();
+	}
+
+	public Header getHeader() {
+		return header;
+	}
+
+	public Block getLastBlock() throws Exception {
+
+		long pos = getLastBlockPosition();
+
+		return getBlock(pos, false);
+	}
+
+	public long getLastBlockPosition() throws Exception {
+		int size = file.readInt(file.length() - 8 - 4);
+		long pos = file.length() - size;
+		return pos;
+	}
+
+	public RawFile getRawFile() {
+		return file;
+	}
+
+	public boolean isEmpty() throws Exception {
+		return length() == getFirstBlockPos();
+	}
+
+	@Override
+	public Iterator<Block> iterator() {
+		try {
+			return new BlockFileIterator(this);
+		} catch (Exception e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+
+	public long length() throws Exception {
+		return file.length();
+	}
+
+	public Block newBlock(byte[] bytes) throws Exception {
+		return newBlock(bytes, minSize, false, true);
+	}
+
+	private Block newBlock(byte[] bytes, int size, boolean fixed,
+			boolean compressed) throws Exception {
+		Block b = Block.create(this, size);
+		b.setFixed(fixed);
+		if (compressed && comp != null)
+			b.setCompressed(comp);
+		if (bytes != null)
+			b.setPayload(bytes);
+		return b;
+	}
+
+	public Block newEmptyBlock() throws Exception {
+		return newBlock(null, minSize, false, true);
+	}
+
+	public Block newFixedBlock(byte[] byteArray) throws Exception {
+		return newBlock(byteArray, minSize, true, true);
+	}
+
+	public Block newUncompressedFixedBlock(byte[] byteArray) throws Exception {
+		return newBlock(byteArray, minSize, true, false);
+	}
+
+	void notifyPosChanged(Block b, long oldPos) throws Exception {
+		for (BlockPosChangeListener block : blockPosChangeListeners) {
+			block.changedPosition(b, oldPos);
+		}
+	}
+
+	public void removeBlock(long pos, long size, byte status) throws Exception {
+		synchronized (blocks) {
+			Block.setDeleted(file, status, pos);
+			blocks.invalidate(BlockID.create(id, pos));
+			// List<Long> l = deleted.get(size);
+			// if (l == null) {
+			// l = new ArrayList<>();
+			// deleted.put(size, l);
+			// }
+			// l.add(pos);
+		}
+	}
+
+	public void removePosListener(BlockPosChangeListener l) {
+		blockPosChangeListeners.remove(l);
+	}
+
+	public long reserve(long long1) {
+		synchronized (blocks) {
+			// Entry<Integer, List<Long>> e = deleted.ceilingEntry(max);
+			// if (e == null || e.getValue().isEmpty()) {
+			long res = currentPos;
+			currentPos += long1;
+			return res;
+			// } else {
+			// return e.getValue().remove(0);
+			// }
+		}
+	}
+
+	public void setCompressed(Compressor comp) {
+		this.comp = comp;
+	}
+
+	public long size() throws Exception {
+		return file.length();
+	}
+
+	@Override
+	public String toString() {
+		return this.file.getFile().getPath();
+	}
+
+	void writeBlock(long pos, Block block, byte[] bytes) throws Exception {
+		if (pos <= 0)
+			throw new Exception("You shouldn't be writing on pos 0");
+		file.write(pos, bytes);
+		if (enableCache)
+			synchronized (blocks) {
+				blocks.put(BlockID.create(id, pos), block);
+			}
+
+		// if (header != null && file.length() != header.getFsize())
+		// header.setFileSize(file.length());
+	}
+}

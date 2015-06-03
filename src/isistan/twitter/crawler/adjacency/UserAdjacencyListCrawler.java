@@ -55,7 +55,9 @@ public class UserAdjacencyListCrawler {
 		int cont = 0;
 		if (status.has("FriendCrawlCursor_" + type)) {
 			next = Long.valueOf(status.get("FriendCrawlCursor_" + type));
-			cont = Integer.valueOf(status.get("FriendCrawlPosition_" + type));
+			String s = status.get("FriendCrawlPosition_" + type);
+			if (s != null)
+				cont = Integer.valueOf(s);
 			log.info("Resuming friend crawling(" + type + ") for " + u + "(@"
 					+ username + ")." + " on cursor " + next);
 		}
@@ -68,8 +70,7 @@ public class UserAdjacencyListCrawler {
 			if (ids != null) {
 				// if (log.isDebugEnabled())
 				log.info("Obtained " + ids.getIDs().length + " friends ("
-						+ "(@" + username + ")." + type + ") for user " + u
-						+ "(@" + username + ").");
+						+ type + ") for user " + u + "(@" + username + ").");
 				store.addAdjacency(u, cont, type, ids.getIDs());
 				cont++;
 				if (ids.hasNext()) {

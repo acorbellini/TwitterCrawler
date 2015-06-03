@@ -30,7 +30,7 @@ public class UserStatus {
 		return cached.get(k);
 	}
 
-	public synchronized void set(String k, String v) throws Exception {
+	public void set(String k, String v) throws Exception {
 		if (cached == null) {
 			cached = db.getStatusProperties(getUser());
 		}
@@ -38,8 +38,9 @@ public class UserStatus {
 		db.saveUserStatus(getUser(), cached, true);
 	}
 
-	public UserTweetsCrawler getFavCrawler(boolean force) {
-		return new UserTweetsCrawler(this, user, TweetType.FAVORITES, force);
+	public UserTweetsCrawler getFavCrawler(boolean force, String lang) {
+		return new UserTweetsCrawler(this, user, TweetType.FAVORITES, force,
+				lang);
 	}
 
 	public UserAdjacencyListCrawler getFolloweeCrawler(boolean force) {
@@ -56,8 +57,8 @@ public class UserStatus {
 		return new UserInfoCrawler(this, user);
 	}
 
-	public UserTweetsCrawler getTweetCrawler(boolean force) {
-		return new UserTweetsCrawler(this, user, TweetType.TWEETS, force);
+	public UserTweetsCrawler getTweetCrawler(boolean force, String lang) {
+		return new UserTweetsCrawler(this, user, TweetType.TWEETS, force, lang);
 	}
 
 	public long getUser() {

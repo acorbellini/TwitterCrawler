@@ -114,18 +114,18 @@ public class CrawlerGetter<R> {
 		if (toSleep < 0)
 			toSleep = 0;
 
-		if (log.isDebugEnabled())
-			log.debug("Waiting " + (toSleep / 1000) + " seconds on account "
-					+ current.getAccount().getName());
+		// if (log.isDebugEnabled())
+		log.info("Waiting " + (toSleep / 1000) + " seconds on account "
+				+ current.getAccount().getName());
 		try {
 			while (toSleep > 0) {
 				Thread.sleep(Math.min(toSleep, 30000));
 				toSleep = toSleep - 30000;
-				if (log.isDebugEnabled())
-					log.debug("Still waiting, "
-							+ (toSleep / 1000 > 0 ? toSleep / 1000 : 0)
-							+ " seconds on account "
-							+ current.getAccount().getName());
+				// if (log.isDebugEnabled())
+				log.info("Still waiting, "
+						+ (toSleep / 1000 > 0 ? toSleep / 1000 : 0)
+						+ " seconds on account "
+						+ current.getAccount().getName());
 			}
 		} catch (Exception e2) {
 
