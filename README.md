@@ -10,6 +10,10 @@ threads=number of threads
 // Optional: forceRecrawl=false(default)/true  
 // "lang" is a language detected from analyzing tweets using textcat.  
 // Optional: lang=(it can be: english(by default), any, other language, you can try crawl a user and see the language code)  
+// "user_lang" filters the language that appears in the user twitter profile.  
+// Optional: user_lang=(it can be: en (by default), any or other language code, you can try crawl a user and see the language code)  
+// Optional: min_tweets=10(default)  
+// Optional: min_followees=10(default)  
   
 # Oauth Files
 An oauth file must contain the following information ( you must have an account on https://apps.twitter.com/ ):  
