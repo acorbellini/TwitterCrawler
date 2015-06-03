@@ -8,6 +8,7 @@ import isistan.twitter.crawler.tweet.TweetType;
 import isistan.twitter.crawler.tweet.UserTweetsCrawler;
 
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -16,26 +17,34 @@ public class UserStatus {
 
 	protected long user;
 	private TwitterStore db;
-	private Map<String, String> cached;
+	private volatile Map<String, String> cached;
 
 	public UserStatus(long u, TwitterStore dbCrawlerStore) {
 		this.user = u;
 		this.db = dbCrawlerStore;
 	}
 
-	public synchronized String get(String k) throws Exception {
+	public String get(String k) throws Exception {
+		return getCache().get(k);
+	}
+
+	private Map<String, String> getCache() throws Exception {
 		if (cached == null) {
-			cached = db.getStatusProperties(getUser());
+			synchronized (this) {
+				if (cached == null) {
+					cached = new ConcurrentHashMap<String, String>(
+							db.getStatusProperties(getUser()));
+				}
+			}
+
 		}
-		return cached.get(k);
+		return cached;
 	}
 
 	public void set(String k, String v) throws Exception {
-		if (cached == null) {
-			cached = db.getStatusProperties(getUser());
-		}
-		cached.put(k, v);
-		db.saveUserStatus(getUser(), cached, true);
+		Map<String, String> cache = getCache();
+		cache.put(k, v);
+		db.saveUserStatus(getUser(), cache, true);
 	}
 
 	public UserTweetsCrawler getFavCrawler(boolean force, String lang) {
