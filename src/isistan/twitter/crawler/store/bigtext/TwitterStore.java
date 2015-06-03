@@ -386,16 +386,16 @@ public class TwitterStore {
 		}
 	}
 
-	public void writeInfo(User user) throws Exception {
-		saveUserInfo(
-				new UserInfo(user.getId(), user.getScreenName(),
-						user.getName(), user.getDescription(), user.getLang(),
-						new java.sql.Date(user.getCreatedAt().getTime()),
-						user.getLocation(), user.getTimeZone(),
-						user.getUtcOffset(), user.getFriendsCount(),
-						user.getFollowersCount(), user.getFavouritesCount(),
-						user.getListedCount(), user.getStatusesCount(),
-						user.isVerified(), user.isProtected()), false);
+	public UserInfo writeInfo(User user) throws Exception {
+		UserInfo info = new UserInfo(user.getId(), user.getScreenName(),
+				user.getName(), user.getDescription(), user.getLang(),
+				new java.sql.Date(user.getCreatedAt().getTime()),
+				user.getLocation(), user.getTimeZone(), user.getUtcOffset(),
+				user.getFriendsCount(), user.getFollowersCount(),
+				user.getFavouritesCount(), user.getListedCount(),
+				user.getStatusesCount(), user.isVerified(), user.isProtected());
+		saveUserInfo(info, false);
+		return info;
 	}
 
 	public static void merge(String from, String to) throws IOException,

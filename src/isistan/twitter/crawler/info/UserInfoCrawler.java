@@ -26,7 +26,7 @@ public class UserInfoCrawler {
 		this.u = user;
 	}
 
-	public void crawl() throws Exception {
+	public UserInfo crawl() throws Exception {
 		User user = CrawlerUtil.get(new TwitterCrawlerRequest<User>() {
 			@Override
 			public User exec(Twitter twitter) throws TwitterException {
@@ -43,12 +43,12 @@ public class UserInfoCrawler {
 				return "UserInfo - User: " + u;
 			}
 		});
-
+		UserInfo info = null;
 		if (user == null)
 			status.setSuspended();
 		else {
 			TwitterStore store = CrawlerConfiguration.getCurrent().getStore();
-			store.writeInfo(user);
+			info = store.writeInfo(user);
 			if (user.isProtected())
 				status.setProtected();
 
@@ -58,5 +58,7 @@ public class UserInfoCrawler {
 		}
 
 		status.setInfoComplete();
+		
+		return info;
 	}
 }

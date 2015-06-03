@@ -1,6 +1,7 @@
 package isistan.twitter.crawler;
 
 import isistan.twitter.crawler.config.CrawlerConfiguration;
+import isistan.twitter.crawler.info.UserInfo;
 import isistan.twitter.crawler.status.UserStatus;
 
 import java.util.ArrayList;
@@ -43,12 +44,11 @@ public class UserCrawler {
 					+ userProp.isSuspended() + ").");
 			return;
 		}
-
-		if (config.getStore().getUserInfo(u) == null || config.isForceRecrawl()
-				|| !userProp.isInfoComplete()) {
+		UserInfo info = config.getStore().getUserInfo(u);
+		if (info == null || !userProp.isInfoComplete()) {
 			log.info("Storing User Info for " + u);
 			try {
-				userProp.getInfoCrawler().crawl();
+				info = userProp.getInfoCrawler().crawl();
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -58,12 +58,7 @@ public class UserCrawler {
 		List<Future<?>> futs = new ArrayList<>();
 
 		if (!userProp.isDisabled()) {
-			String uname = "NONAMEFOUND";
-			try {
-				uname = config.getStore().getUserInfo(u).scn;
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
+			String uname = info == null ? "NONAMEFOUND" : info.scn;
 			final String username = uname;
 			if (config.isCrawlFollowees())
 				futs.add(execUser.submit(new Runnable() {

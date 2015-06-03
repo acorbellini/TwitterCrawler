@@ -57,6 +57,8 @@ public class CrawlerConfiguration {
 
 	private static final String LANGUAGE = "lang";
 
+	private static final String SYNC = "syncDB";
+
 	private static CrawlerConfiguration current = null;
 
 	HashSet<Long> done = new HashSet<>();
@@ -106,7 +108,10 @@ public class CrawlerConfiguration {
 		crawlDir = new File(outputdir + "/crawl");
 		crawlstatus = new File(outputdir + "/crawl-status");
 
-		store = new TwitterStore(new File(outputdir));
+		boolean sync = true;
+		if (config.getProperty(SYNC) != null)
+			sync = Boolean.valueOf(config.getProperty(SYNC));
+		store = new TwitterStore(new File(outputdir), sync);
 		// store = new CrawlerStore(bt, outputdir);
 		oauthdirs = new ArrayList<File>();
 
