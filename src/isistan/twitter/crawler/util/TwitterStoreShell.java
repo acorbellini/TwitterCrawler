@@ -46,12 +46,14 @@ public class TwitterStoreShell {
 		Shell.init(store);
 		URI uri = null;
 		int cont = 0;
-		while (cont < 10) {
+		boolean finished = false;
+		while (!finished && cont < 10) {
 			try {
 				uri = getURI(port);
 				this.server = HttpServerFactory.create(uri, config);
 				server.start();
 			} catch (Exception e) {
+				finished = true;
 				cont++;
 				port++;
 			}

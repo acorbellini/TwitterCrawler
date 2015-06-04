@@ -114,7 +114,10 @@ public class StoreUtil {
 	}
 
 	static long[] parseLongArray(String string) {
-		String[] list = string.replace("[", "").replace("]", "").split(",");
+		if (string.isEmpty())
+			return new long[] {};
+		String[] list = string.replace("[", "").replace("]", "").trim()
+				.split(",");
 		long[] ret = new long[list.length];
 		for (int i = 0; i < ret.length; i++)
 			ret[i] = Long.valueOf(list[i]);
@@ -390,7 +393,10 @@ public class StoreUtil {
 
 	public static MediaList parseMedia(String string) {
 		MediaList ret = new MediaList();
-		String[] list = string.replace("[", "").replace("]", "").split("-");
+		if (string.isEmpty())
+			return ret;
+		String[] list = string.replace("[", "").replace("]", "").trim()
+				.split("-");
 		for (String string2 : list) {
 			String[] hashtag = string2.split(",");
 			ret.addNew(Long.valueOf(hashtag[0]), hashtag[1], hashtag[2],
@@ -400,8 +406,12 @@ public class StoreUtil {
 	}
 
 	public static HashTagList parseHashTags(String string) {
+
 		HashTagList ret = new HashTagList();
-		String[] list = string.replace("[", "").replace("]", "").split("-");
+		if (string.isEmpty())
+			return ret;
+		String[] list = string.replace("[", "").replace("]", "").trim()
+				.split("-");
 		for (String string2 : list) {
 			String[] hashtag = string2.split(",");
 			ret.addNew(hashtag[0], Integer.valueOf(hashtag[1]),
@@ -450,11 +460,38 @@ public class StoreUtil {
 
 	public static MentionList parseMentions(String string) {
 		MentionList ret = new MentionList();
-		String[] list = string.replace("[", "").replace("]", "").split("-");
-		for (String string2 : list) {
-			String[] hashtag = string2.split(",");
-			ret.addNew(Long.valueOf(hashtag[0]), hashtag[1], hashtag[2],
-					Integer.valueOf(hashtag[3]), Integer.valueOf(hashtag[4]));
+		if (string.isEmpty())
+			return ret;
+		try {
+			String[] list = string.split("\\]-\\[");
+			for (String string2 : list) {
+				try {
+					String[] hashtag = string2.replace("[", "")
+							.replace("]", "").split(",");
+					if (hashtag.length == 5)
+						ret.addNew(Long.valueOf(hashtag[0]), hashtag[1],
+								hashtag[2], Integer.valueOf(hashtag[3]),
+								Integer.valueOf(hashtag[4]));
+					else if (hashtag.length > 5) {
+						String name = "";
+						boolean first = true;
+						for (int i = 2; i < 2 + (hashtag.length - 4); i++) {
+							if (first)
+								first = false;
+							else
+								name += ",";
+							name += hashtag[i];
+						}
+						ret.addNew(Long.valueOf(hashtag[0]), hashtag[1], name,
+								Integer.valueOf(hashtag[hashtag.length - 2]),
+								Integer.valueOf(hashtag[hashtag.length - 1]));
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 		return ret;
 	}
