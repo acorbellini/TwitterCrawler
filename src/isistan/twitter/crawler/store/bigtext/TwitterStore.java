@@ -397,7 +397,7 @@ public class TwitterStore {
 		s = s.replace("TweetDeck", "td");
 		s = s.replace("HootSuite", "ht");
 		s = s.replace("Buffer", "buff");
-		return null;
+		return s;
 	}
 
 	public UserInfo writeInfo(User user) throws Exception {
