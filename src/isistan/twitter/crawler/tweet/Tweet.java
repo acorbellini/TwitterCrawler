@@ -207,6 +207,9 @@ public class Tweet implements Serializable {
 		obj.addProperty("media", media.toString());
 		obj.addProperty("contrib", Arrays.toString(contrib));
 		obj.addProperty("reply", reply.toString());
+		obj.addProperty("favorites", this.favoriteCount);
+		obj.addProperty("favorited", this.favorited);
+		obj.addProperty("possiblySensitive", this.possiblySensitive);
 		return obj.toString();
 		// return "{\"user\":\"" + user + "\", \"tweetid\":\"" + tweetid
 		// + "\", \"created\":\"" + escape(created.toString())
