@@ -44,32 +44,20 @@ public class TwitterStoreShell {
 		ResourceConfig config = new PackagesResourceConfig(
 				"isistan.twitter.crawler.util.web");
 		Shell.init(store);
-		URI uri = getURI(port);
-		this.server = HttpServerFactory.create(uri, config);
-		server.start();
+		URI uri = null;
+		int cont = 0;
+		while (cont < 10) {
+			try {
+				uri = getURI(port);
+				this.server = HttpServerFactory.create(uri, config);
+				server.start();
+			} catch (Exception e) {
+				cont++;
+				port++;
+			}
+		}
 		Logger log = Logger.getLogger(TwitterStoreShell.class);
 		log.info("Started Web Server at " + uri);
-		// List<String> history = new ArrayList<>();
-		// Binding binding = new Binding();
-		// binding.setVariable("store", new TwitterStore(new File(args[0])));
-		// GroovyShell shell = new GroovyShell(binding);
-		// String exp = "";
-		// while (!exp.equals("exit")) {
-		// System.out.print("> ");
-		// BufferedReader reader = new BufferedReader(new InputStreamReader(
-		// System.in));
-		// exp = reader.readLine();
-		// Object value;
-		// try {
-		// value = shell.evaluate(exp);
-		// history.add(exp);
-		// if (value != null)
-		// System.out.println(value.toString());
-		// } catch (Exception e) {
-		// System.out.println(e.getMessage());
-		// }
-		//
-		// }
 	}
 
 	private static URI getURI(int port) {
