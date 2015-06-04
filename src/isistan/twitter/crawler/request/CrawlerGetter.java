@@ -39,7 +39,7 @@ public class CrawlerGetter<R> {
 		current = config.getAccount(req.getReqType());
 		while (!success)
 			try {
-				twitter = TwitterOauthBuilder.build(current.getAccount());
+				twitter = current.getTwitter(req.getReqType());
 				res = req.exec(twitter);
 				success = true;
 				config.getFailures().put(current, 0);

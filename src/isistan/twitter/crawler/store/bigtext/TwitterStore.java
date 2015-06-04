@@ -4,6 +4,7 @@ import gnu.trove.list.array.TLongArrayList;
 import isistan.twitter.crawler.adjacency.ListType;
 import isistan.twitter.crawler.info.UserInfo;
 import isistan.twitter.crawler.status.UserStatus;
+import isistan.twitter.crawler.tweet.Reply;
 import isistan.twitter.crawler.tweet.Tweet;
 import isistan.twitter.crawler.tweet.TweetType;
 import isistan.twitter.crawler.util.CrawlerUtil;
@@ -364,26 +365,39 @@ public class TwitterStore {
 		for (Status t : stats) {
 			Status retweetedStatus = t.getRetweetedStatus();
 			Tweet tweet = new Tweet(user, t.getId(), t.getCreatedAt(),
-					StoreUtil.removeTags(t.getSource()), Tweet.formatHashtags(t
-							.getHashtagEntities()),
+					simplifySource(StoreUtil.removeTags(t.getSource())),
+					Tweet.formatHashtags(t.getHashtagEntities()),
 					Tweet.formatMentionEntities(t.getUserMentionEntities()),
 					t.getText(), t.getRetweetCount(),
 					retweetedStatus != null ? retweetedStatus.getId() : -1,
 					t.getFavoriteCount(), t.isFavorited(),
 					t.isPossiblySensitive());
-			tweet.setReply(t.getInReplyToScreenName(), t.getInReplyToUserId(),
-					t.getInReplyToStatusId());
-			tweet.setContributors(Arrays.toString(t.getContributors()));
+			tweet.setReply(new Reply(t.getInReplyToScreenName(), t
+					.getInReplyToUserId(), t.getInReplyToStatusId()));
+			tweet.setContributors(t.getContributors());
 			tweet.setMedia(Tweet.formatMedia(t.getMediaEntities()));
 			if (t.getPlace() != null) {
 				Place place = t.getPlace();
-				tweet.setPlace(place.getCountry(), place.getFullName(),
-						place.getName());
+				tweet.setPlace(new isistan.twitter.crawler.tweet.Place(place
+						.getCountry(), place.getFullName(), place.getName()));
 			} else
-				tweet.setPlace("", "", "");
+				tweet.setPlace(new isistan.twitter.crawler.tweet.Place("", "",
+						""));
 
 			saveTweet(tweet.user, type, true, tweet);
 		}
+	}
+
+	private String simplifySource(String s) {
+		s = s.trim();
+		s = s.replace("Twitter for", "");
+		s = s.replace("Twitter Web Client", "web");
+		s = s.replace("Android", "a");
+		s = s.replace("iPhone", "iP");
+		s = s.replace("TweetDeck", "td");
+		s = s.replace("HootSuite", "ht");
+		s = s.replace("Buffer", "buff");
+		return null;
 	}
 
 	public UserInfo writeInfo(User user) throws Exception {

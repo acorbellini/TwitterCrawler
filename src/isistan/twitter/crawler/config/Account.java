@@ -1,15 +1,19 @@
 package isistan.twitter.crawler.config;
 
+import isistan.twitter.crawler.TwitterOauthBuilder;
 import isistan.twitter.crawler.request.RequestType;
 
 import java.io.File;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import twitter4j.Twitter;
+
 public class Account {
 	private File account;
 	Map<RequestType, Boolean> inUse = new ConcurrentHashMap<>();
 	Map<RequestType, Long> times = new ConcurrentHashMap<>();
+	Map<RequestType, Twitter> twitters = new ConcurrentHashMap<>();
 	private volatile boolean discarded = false;
 
 	public Account(File f) {
@@ -59,5 +63,19 @@ public class Account {
 
 	public boolean isDiscarded() {
 		return discarded;
+	}
+
+	public Twitter getTwitter(RequestType req) throws Exception {
+		Twitter twitter = twitters.get(req);
+		if (twitter == null) {
+			synchronized (twitters) {
+				twitter = twitters.get(req);
+				if (twitter == null) {
+					twitter = TwitterOauthBuilder.build(getAccount());
+					twitters.put(req, twitter);
+				}
+			}
+		}
+		return twitter;
 	}
 }

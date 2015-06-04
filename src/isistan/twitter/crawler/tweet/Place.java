@@ -2,16 +2,21 @@ package isistan.twitter.crawler.tweet;
 
 import java.io.Serializable;
 
+import edu.jlime.util.ByteBuffer;
+
 public class Place implements Serializable {
 
-	public String place;
-	public String countryFull;
-	public String country;
+	public String place = "";
+	public String countryFull = "";
+	public String country = "";
 
 	public Place(String country, String countryFull, String name) {
 		this.country = country;
 		this.countryFull = countryFull;
 		this.place = name;
+	}
+
+	public Place() {
 	}
 
 	@Override
@@ -43,8 +48,28 @@ public class Place implements Serializable {
 
 	@Override
 	public String toString() {
-		return "Place [place=" + place + ", countryFull=" + countryFull
+		return "[place=" + place + ", countryFull=" + countryFull
 				+ ", country=" + country + "]";
 	}
 
+	public void writeTo(ByteBuffer buffer) {
+		if (place.isEmpty())
+			buffer.put((byte) 0);
+		else {
+			buffer.put((byte) 1);
+			buffer.putString(place);
+			buffer.putString(country);
+			buffer.putString(countryFull);
+		}
+	}
+
+	public Place readFrom(ByteBuffer buffer) {
+		byte type = buffer.get();
+		if (type == 1) {
+			this.place = buffer.getString();
+			this.country = buffer.getString();
+			this.countryFull = buffer.getString();
+		}
+		return this;
+	}
 }

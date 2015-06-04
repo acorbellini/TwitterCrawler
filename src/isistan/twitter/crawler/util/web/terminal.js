@@ -39,9 +39,9 @@ jQuery(function($, undefined) {
 															for ( var prop in obj)
 																if (obj
 																		.hasOwnProperty(prop))
-																	table += "<td title=\""
+																	table += "<td title=\'"
 																			+ obj[prop]
-																			+ "\">"
+																			+ "\'>"
 																			+ obj[prop]
 																			+ "</td>"
 															table += "</tr>";
@@ -116,7 +116,11 @@ jQuery(function($, undefined) {
 		term.focus(true);
 	})
 });
-$(document).tooltip();
+$(document).tooltip({
+    content: function (callback) {
+	     callback($(this).prop('title'));
+	  }
+	});
 /*
  * $(window).resize(function() { $('#terminal').height($(window).height() - 46);
  * });

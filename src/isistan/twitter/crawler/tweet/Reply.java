@@ -2,17 +2,22 @@ package isistan.twitter.crawler.tweet;
 
 import java.io.Serializable;
 
+import edu.jlime.util.ByteBuffer;
+
 public class Reply implements Serializable {
 
-	public long inreplytouid;
-	public long inreplytostatusid;
-	public String inreplytoscn;
+	public long inreplytouid = -1;
+	public long inreplytostatusid = -1;
+	public String inreplytoscn = "";
 
-	public Reply(long inReplyToUserId, String inReplyToScreenName,
+	public Reply(String inReplyToScreenName, long inReplyToUserId,
 			long inReplyToStatusId) {
 		this.inreplytouid = inReplyToUserId;
 		this.inreplytostatusid = inReplyToStatusId;
 		this.inreplytoscn = inReplyToScreenName;
+	}
+
+	public Reply() {
 	}
 
 	@Override
@@ -52,6 +57,27 @@ public class Reply implements Serializable {
 	public String toString() {
 		return "Reply [inreplytoid=" + inreplytouid + ", inreplytostatusid="
 				+ inreplytostatusid + ", inreplytoscn=" + inreplytoscn + "]";
+	}
+
+	public void writeTo(ByteBuffer buffer) {
+		if (inreplytouid == -1) {
+			buffer.put((byte) 0);
+		} else {
+			buffer.put((byte) 1);
+			buffer.putLong(inreplytouid);
+			buffer.putLong(inreplytostatusid);
+			buffer.putString(inreplytoscn);
+		}
+	}
+
+	public Reply readFrom(ByteBuffer buffer) {
+		byte type = buffer.get();
+		if (type == 1) {
+			inreplytouid = buffer.getLong();
+			inreplytostatusid = buffer.getLong();
+			inreplytoscn = buffer.getString();
+		}
+		return this;
 	}
 
 }

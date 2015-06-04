@@ -1,5 +1,7 @@
 package isistan.twitter.crawler.util;
 
+import isistan.twitter.crawler.tweet.Place;
+import isistan.twitter.crawler.tweet.Reply;
 import isistan.twitter.crawler.tweet.Tweet;
 
 import java.io.File;
@@ -126,14 +128,16 @@ public class TweetReader implements Iterator<Tweet> {
 
 					Tweet tweet = new Tweet(user, Long.valueOf(split[0]),
 							StoreUtil.toDate(split[1]),
-							StoreUtil.removeTags(split[8]), split[11],
-							split[22], split[23], Integer.valueOf(split[7]),
-							Long.valueOf(split[6]), 0, false, false);
-					tweet.setMedia(split[12]);
-					tweet.setPlace(split[14], split[16], split[19]);
-					tweet.setContributors(split[2]);
-					tweet.setReply(split[4], Long.valueOf(split[3]),
-							Long.valueOf(split[5]));
+							StoreUtil.removeTags(split[8]),
+							StoreUtil.parseHashTags(split[11]),
+							StoreUtil.parseMentions(split[22]), split[23],
+							Integer.valueOf(split[7]), Long.valueOf(split[6]),
+							0, false, false);
+					tweet.setMedia(StoreUtil.parseMedia(split[12]));
+					tweet.setPlace(new Place(split[14], split[16], split[19]));
+					tweet.setContributors(StoreUtil.parseLongArray(split[2]));
+					tweet.setReply(new Reply(split[4], Long.valueOf(split[3]),
+							Long.valueOf(split[5])));
 
 					return tweet;
 				} catch (Exception e) {

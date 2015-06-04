@@ -3,6 +3,7 @@ package isistan.twitter.crawler.tweet;
 import isistan.twitter.crawler.util.CrawlerUtil;
 
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.Date;
 
 import twitter4j.GeoLocation;
@@ -18,14 +19,14 @@ public class Tweet implements Serializable {
 	public long tweetid;
 	public Date created;
 	public String source;
-	public String hashtags;
-	public String mentions;
+	public HashTagList hashtags;
+	public MentionList mentions;
 	public String text;
 	public int retweetCount;
 	public long retweetid;
 	public Place place;
-	public String media;
-	public String contrib;
+	public MediaList media;
+	public long[] contrib;
 	public Reply reply;
 	public boolean favorited;
 	public boolean possiblySensitive;
@@ -34,14 +35,14 @@ public class Tweet implements Serializable {
 	public Tweet() {
 	}
 
-	public Tweet(long user, long id, Date createdAt, String source, String h,
-			String m, String t, int rt, long retweetid, int favorites,
-			boolean isFav, boolean isSensitive) {
+	public Tweet(long user, long id, Date createdAt, String source,
+			HashTagList hashTagList, MentionList m, String t, int rt,
+			long retweetid, int favorites, boolean isFav, boolean isSensitive) {
 		this.user = user;
 		this.tweetid = id;
 		this.created = createdAt;
 		this.source = source;
-		this.hashtags = h;
+		this.hashtags = hashTagList;
 		this.mentions = m;
 		this.text = t;
 		this.retweetCount = rt;
@@ -125,7 +126,7 @@ public class Tweet implements Serializable {
 		return Long.valueOf(tweetid).hashCode();
 	}
 
-	public void setContributors(String contrib) {
+	public void setContributors(long[] contrib) {
 		this.contrib = contrib;
 
 	}
@@ -142,30 +143,28 @@ public class Tweet implements Serializable {
 		this.favorited = favorited;
 	}
 
-	public void setHashtags(String hashtags) {
+	public void setHashtags(HashTagList hashtags) {
 		this.hashtags = hashtags;
 	}
 
-	public void setMedia(String media) {
-		this.media = media;
+	public void setMedia(MediaList mediaList) {
+		this.media = mediaList;
 	}
 
-	public void setMentions(String mentions) {
+	public void setMentions(MentionList mentions) {
 		this.mentions = mentions;
 	}
 
-	public void setPlace(String country, String fullName, String name) {
-		this.place = new Place(country, fullName, name);
+	public void setPlace(Place p) {
+		this.place = p;
 	}
 
 	public void setPossiblySensitive(boolean possiblySensitive) {
 		this.possiblySensitive = possiblySensitive;
 	}
 
-	public void setReply(String inReplyToScreenName, long inReplyToUserId,
-			long inReplyToStatusId) {
-		this.reply = new Reply(inReplyToUserId, inReplyToScreenName,
-				inReplyToStatusId);
+	public void setReply(Reply r) {
+		this.reply = r;
 	}
 
 	public void setRetweetCount(int retweetCount) {
@@ -199,14 +198,14 @@ public class Tweet implements Serializable {
 		obj.addProperty("tweetid", tweetid);
 		obj.addProperty("created", created.toString());
 		obj.addProperty("source", source);
-		obj.addProperty("hashtags", hashtags);
-		obj.addProperty("mentions", mentions);
+		obj.addProperty("hashtags", hashtags.toString());
+		obj.addProperty("mentions", mentions.toString());
 		obj.addProperty("text", text);
 		obj.addProperty("retweetCount", retweetCount);
 		obj.addProperty("retweetid", retweetid);
 		obj.addProperty("place", place.toString());
-		obj.addProperty("media", media);
-		obj.addProperty("contrib", contrib);
+		obj.addProperty("media", media.toString());
+		obj.addProperty("contrib", Arrays.toString(contrib));
 		obj.addProperty("reply", reply.toString());
 		return obj.toString();
 		// return "{\"user\":\"" + user + "\", \"tweetid\":\"" + tweetid
@@ -221,19 +220,16 @@ public class Tweet implements Serializable {
 		// + escape(reply.toString()) + "\"}";
 	}
 
-	public static String formatMentionEntities(
+	public static MentionList formatMentionEntities(
 			UserMentionEntity[] userMentionEntities) {
-		StringBuffer buf = new StringBuffer();
+		MentionList ret = new MentionList();
 		for (UserMentionEntity userMentionEntity : userMentionEntities) {
-			buf.append("-[" + userMentionEntity.getId() + ","
-					+ userMentionEntity.getScreenName() + ","
-					+ CrawlerUtil.escape(userMentionEntity.getName()) + ","
-					+ userMentionEntity.getStart() + ","
-					+ userMentionEntity.getEnd() + "]");
+			ret.addNew(userMentionEntity.getId(),
+					userMentionEntity.getScreenName(),
+					CrawlerUtil.escape(userMentionEntity.getName()),
+					userMentionEntity.getStart(), userMentionEntity.getEnd());
 		}
-		if (buf.length() == 0)
-			return "";
-		return buf.substring(1);
+		return ret;
 	}
 
 	public static String formatCoordinates(
@@ -256,28 +252,23 @@ public class Tweet implements Serializable {
 		return buff.substring(1);
 	}
 
-	public static String formatMedia(MediaEntity[] mediaEntities) {
-		StringBuffer buf = new StringBuffer();
+	public static MediaList formatMedia(MediaEntity[] mediaEntities) {
+		MediaList ret = new MediaList();
 		for (MediaEntity mediaEntity : mediaEntities) {
-			buf.append("-[" + mediaEntity.getId() + "," + mediaEntity.getType()
-					+ "," + mediaEntity.getURL() + "," + mediaEntity.getStart()
-					+ "," + mediaEntity.getEnd() + "]");
+			ret.addNew(mediaEntity.getId(), mediaEntity.getType(),
+					mediaEntity.getURL(), mediaEntity.getStart(),
+					mediaEntity.getEnd());
 		}
-		if (buf.length() == 0)
-			return "";
-		return buf.substring(1);
+		return ret;
 	}
 
-	public static String formatHashtags(HashtagEntity[] hashtagEntities) {
-		StringBuffer buf = new StringBuffer();
+	public static HashTagList formatHashtags(HashtagEntity[] hashtagEntities) {
+		HashTagList list = new HashTagList();
 		for (HashtagEntity hashtagEntity : hashtagEntities) {
-			buf.append("-[" + hashtagEntity.getText() + ","
-					+ hashtagEntity.getStart() + "," + hashtagEntity.getEnd()
-					+ "]");
+			list.addNew(hashtagEntity.getText(), hashtagEntity.getStart(),
+					hashtagEntity.getEnd());
 		}
-		if (buf.length() == 0)
-			return "";
-		return buf.substring(1);
+		return list;
 	}
 
 	public static String formatPlace(twitter4j.Place place) {

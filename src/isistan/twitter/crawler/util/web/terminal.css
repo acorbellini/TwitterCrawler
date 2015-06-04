@@ -14,3 +14,7 @@ table.dataTable {
 	white-space: nowrap;
 	max-width: 200px;
 }
+
+.ui-tooltip {
+    max-width: 1000px;
+}

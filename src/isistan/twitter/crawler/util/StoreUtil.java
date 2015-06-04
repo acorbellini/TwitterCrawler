@@ -2,6 +2,11 @@ package isistan.twitter.crawler.util;
 
 import gnu.trove.list.array.TLongArrayList;
 import isistan.twitter.crawler.info.UserInfo;
+import isistan.twitter.crawler.tweet.HashTagList;
+import isistan.twitter.crawler.tweet.MediaList;
+import isistan.twitter.crawler.tweet.MentionList;
+import isistan.twitter.crawler.tweet.Place;
+import isistan.twitter.crawler.tweet.Reply;
 import isistan.twitter.crawler.tweet.Tweet;
 
 import java.io.BufferedReader;
@@ -18,28 +23,86 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 import edu.jlime.util.ByteBuffer;
+import edu.jlime.util.DataTypeUtils;
 import edu.jlime.util.table.CSVBuilder;
 import edu.jlime.util.table.CSVReader;
 import edu.jlime.util.table.Table;
 import edu.jlime.util.table.ValueCell;
 
 public class StoreUtil {
+	private static final long VERSION_3_MAGIC = DataTypeUtils
+			.byteArrayToLong("VER3TWIT".getBytes());
+
+	public static byte[] tweetToByteArray(Tweet tweet) {
+		ByteBuffer buffer = new ByteBuffer();
+		buffer.putLong(VERSION_3_MAGIC);
+		buffer.putLong(tweet.user);
+		buffer.putLong(tweet.tweetid);
+		buffer.putLong(tweet.created.getTime());
+		buffer.putString(tweet.source);
+		tweet.hashtags.writeTo(buffer);
+		tweet.mentions.writeTo(buffer);
+		buffer.putInt(tweet.retweetCount);
+		buffer.putLong(tweet.retweetid);
+		buffer.putString(tweet.text);
+		tweet.place.writeTo(buffer);
+		tweet.reply.writeTo(buffer);
+		tweet.media.writeTo(buffer);
+		buffer.putLongArray(tweet.contrib);
+		// Version 2
+		buffer.putInt(tweet.favoriteCount);
+		buffer.putBoolean(tweet.favorited);
+		buffer.putBoolean(tweet.possiblySensitive);
+
+		return buffer.build();
+	}
+
 	public static Tweet byteArrayToTweet(byte[] byteArray) {
+		long magic = DataTypeUtils.byteArrayToLong(byteArray);
+		if (magic == VERSION_3_MAGIC) {
+
+			ByteBuffer buffer = new ByteBuffer(byteArray);
+			long magicAgain = buffer.getLong();
+			Tweet ret = new Tweet();
+			ret.setUser(buffer.getLong());
+			ret.setTweetid(buffer.getLong());
+			ret.setCreated(new Date(buffer.getLong()));
+			ret.setSource(buffer.getString());
+			ret.setHashtags(new HashTagList().readFrom(buffer));
+			ret.setMentions(new MentionList().readFrom(buffer));
+			ret.setRetweetCount(buffer.getInt());
+			ret.setRetweetid(buffer.getLong());
+			ret.setText(buffer.getString());
+			ret.setPlace(new Place().readFrom(buffer));
+			ret.setReply(new Reply().readFrom(buffer));
+			ret.setMedia(new MediaList().readFrom(buffer));
+			ret.setContributors(buffer.getLongArray());
+			ret.setFavoriteCount(buffer.getInt());
+			ret.setFavorited(buffer.getBoolean());
+			ret.setPossiblySensitive(buffer.getBoolean());
+			return ret;
+		} else
+			return readVersion2(byteArray);
+	}
+
+	private static Tweet readVersion2(byte[] byteArray) {
 		ByteBuffer buffer = new ByteBuffer(byteArray);
 		Tweet ret = new Tweet();
 		ret.setUser(buffer.getLong());
 		ret.setTweetid(buffer.getLong());
 		ret.setCreated(new Date(buffer.getLong()));
 		ret.setSource(buffer.getString());
-		ret.setHashtags(buffer.getString());
-		ret.setMentions(buffer.getString());
+		ret.setHashtags(StoreUtil.parseHashTags(buffer.getString()));
+		ret.setMentions(StoreUtil.parseMentions(buffer.getString()));
 		ret.setRetweetCount(buffer.getInt());
 		ret.setRetweetid(buffer.getLong());
 		ret.setText(buffer.getString());
-		ret.setPlace(buffer.getString(), buffer.getString(), buffer.getString());
-		ret.setReply(buffer.getString(), buffer.getLong(), buffer.getLong());
-		ret.setMedia(buffer.getString());
-		ret.setContributors(buffer.getString());
+		ret.setPlace(new Place(buffer.getString(), buffer.getString(), buffer
+				.getString()));
+		ret.setReply(new Reply(buffer.getString(), buffer.getLong(), buffer
+				.getLong()));
+		ret.setMedia(StoreUtil.parseMedia(buffer.getString()));
+		ret.setContributors(StoreUtil.parseLongArray(buffer.getString()));
 
 		// Version 2
 		if (buffer.hasRemaining()) {
@@ -47,6 +110,14 @@ public class StoreUtil {
 			ret.setFavorited(buffer.getBoolean());
 			ret.setPossiblySensitive(buffer.getBoolean());
 		}
+		return ret;
+	}
+
+	static long[] parseLongArray(String string) {
+		String[] list = string.replace("[", "").replace("]", "").split(",");
+		long[] ret = new long[list.length];
+		for (int i = 0; i < ret.length; i++)
+			ret[i] = Long.valueOf(list[i]);
 		return ret;
 	}
 
@@ -99,6 +170,7 @@ public class StoreUtil {
 		return new Date(new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy",
 				Locale.US).parse(t).getTime());
 	}
+
 	public static UserInfo toInfo(File info) throws Exception {
 
 		CSVBuilder builder = new CSVBuilder(info);
@@ -144,6 +216,7 @@ public class StoreUtil {
 				Boolean.valueOf(t.get(14, 1).value()), Boolean.valueOf(t.get(
 						15, 1).value()));
 	}
+
 	public static long[] toList(File foll) throws Exception {
 		BufferedReader reader = null;
 		try {
@@ -169,6 +242,7 @@ public class StoreUtil {
 		list.sort();
 		return list.toArray();
 	}
+
 	public static Set<Tweet> toTweet(long user, File t) throws IOException,
 			NumberFormatException, ParseException {
 		final Set<Tweet> tweets = new HashSet<>();
@@ -273,14 +347,15 @@ public class StoreUtil {
 
 				Tweet tweet = new Tweet(user, Long.valueOf(split[0]),
 						StoreUtil.toDate(split[1]),
-						StoreUtil.removeTags(split[8]), split[11], split[22],
+						StoreUtil.removeTags(split[8]),
+						parseHashTags(split[11]), parseMentions(split[22]),
 						split[23], Integer.valueOf(split[7]),
 						Long.valueOf(split[6]), 0, false, false);
-				tweet.setMedia(split[12]);
-				tweet.setPlace(split[14], split[16], split[19]);
-				tweet.setContributors(split[2]);
-				tweet.setReply(split[4], Long.valueOf(split[3]),
-						Long.valueOf(split[5]));
+				tweet.setMedia(StoreUtil.parseMedia(split[12]));
+				tweet.setPlace(new Place(split[14], split[16], split[19]));
+				tweet.setContributors(parseLongArray(split[2]));
+				tweet.setReply(new Reply(split[4], Long.valueOf(split[3]), Long
+						.valueOf(split[5])));
 
 				tweets.add(tweet);
 			} catch (Exception e) {
@@ -312,37 +387,32 @@ public class StoreUtil {
 		}
 		return tweets;
 	}
+
+	public static MediaList parseMedia(String string) {
+		MediaList ret = new MediaList();
+		String[] list = string.replace("[", "").replace("]", "").split("-");
+		for (String string2 : list) {
+			String[] hashtag = string2.split(",");
+			ret.addNew(Long.valueOf(hashtag[0]), hashtag[1], hashtag[2],
+					Integer.valueOf(hashtag[3]), Integer.valueOf(hashtag[4]));
+		}
+		return ret;
+	}
+
+	public static HashTagList parseHashTags(String string) {
+		HashTagList ret = new HashTagList();
+		String[] list = string.replace("[", "").replace("]", "").split("-");
+		for (String string2 : list) {
+			String[] hashtag = string2.split(",");
+			ret.addNew(hashtag[0], Integer.valueOf(hashtag[1]),
+					Integer.valueOf(hashtag[2]));
+		}
+		return ret;
+	}
+
 	public static TweetReader tweetReader(long user, File tFile)
 			throws Exception {
 		return new TweetReader(user, tFile);
-	}
-
-	public static byte[] tweetToByteArray(Tweet tweet) {
-		ByteBuffer buffer = new ByteBuffer();
-		buffer.putLong(tweet.user);
-		buffer.putLong(tweet.tweetid);
-		buffer.putLong(tweet.created.getTime());
-		buffer.putString(tweet.source);
-		buffer.putString(tweet.hashtags);
-		buffer.putString(tweet.mentions);
-		buffer.putInt(tweet.retweetCount);
-		buffer.putLong(tweet.retweetid);
-		buffer.putString(tweet.text);
-		buffer.putString(tweet.place.country);
-		buffer.putString(tweet.place.countryFull);
-		buffer.putString(tweet.place.place);
-		buffer.putString(tweet.reply.inreplytoscn);
-		buffer.putLong(tweet.reply.inreplytouid);
-		buffer.putLong(tweet.reply.inreplytostatusid);
-		buffer.putString(tweet.media);
-		buffer.putString(tweet.contrib);
-
-		// Version 2
-		buffer.putInt(tweet.favoriteCount);
-		buffer.putBoolean(tweet.favorited);
-		buffer.putBoolean(tweet.possiblySensitive);
-
-		return buffer.build();
 	}
 
 	public static byte[] userInfoToBytes(UserInfo info) {
@@ -377,4 +447,15 @@ public class StoreUtil {
 	private static Pattern o_patt = Pattern.compile("&#111;");
 
 	private static Pattern e_patt = Pattern.compile("&#116;");
+
+	public static MentionList parseMentions(String string) {
+		MentionList ret = new MentionList();
+		String[] list = string.replace("[", "").replace("]", "").split("-");
+		for (String string2 : list) {
+			String[] hashtag = string2.split(",");
+			ret.addNew(Long.valueOf(hashtag[0]), hashtag[1], hashtag[2],
+					Integer.valueOf(hashtag[3]), Integer.valueOf(hashtag[4]));
+		}
+		return ret;
+	}
 }
