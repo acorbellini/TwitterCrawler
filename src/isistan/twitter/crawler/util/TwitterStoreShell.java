@@ -52,8 +52,8 @@ public class TwitterStoreShell {
 				uri = getURI(port);
 				this.server = HttpServerFactory.create(uri, config);
 				server.start();
-			} catch (Exception e) {
 				finished = true;
+			} catch (Exception e) {				
 				cont++;
 				port++;
 			}
