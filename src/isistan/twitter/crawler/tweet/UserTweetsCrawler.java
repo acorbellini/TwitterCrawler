@@ -121,7 +121,7 @@ public class UserTweetsCrawler {
 					if (string.equals(lang))
 						containsLang = true;
 				}
-				if (containsLang) {
+				if (!containsLang) {
 					log.info("Escaping " + user + "(@" + username + ")"
 							+ " identified language as " + list[0]);
 					status.setEscaped();
