@@ -396,7 +396,7 @@ public class TwitterStore {
 		s = s.replace("iPhone", "iP");
 		s = s.replace("TweetDeck", "td");
 		s = s.replace("HootSuite", "ht");
-		s = s.replace("Buffer", "buff");
+		s = s.replace("Buffer", "b");
 		return s;
 	}
 
