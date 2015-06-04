@@ -1,5 +1,7 @@
 package isistan.twitter.crawler.tweet;
 
+import java.util.Arrays;
+
 import isistan.twitter.crawler.config.CrawlerConfiguration;
 import isistan.twitter.crawler.request.RequestType;
 import isistan.twitter.crawler.request.TwitterCrawlerRequest;
@@ -107,9 +109,8 @@ public class UserTweetsCrawler {
 
 					});
 
-			if (stats != null
-					&& (page == 1 && !lang.equals("any") || (type
-							.equals(TweetType.TWEETS)))) {
+			if (stats != null && page == 1
+					&& !lang.equals("any") && (type.equals(TweetType.TWEETS))) {
 				StringBuilder b = new StringBuilder();
 				for (Status status : stats) {
 					b.append(" " + status.getText());
@@ -123,7 +124,8 @@ public class UserTweetsCrawler {
 				}
 				if (!containsLang) {
 					log.info("Escaping " + user + "(@" + username + ")"
-							+ " identified language as " + list[0]);
+							+ " identified language as "
+							+ Arrays.toString(list));
 					status.setEscaped();
 					return;
 				}
