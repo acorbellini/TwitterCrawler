@@ -108,7 +108,8 @@ public class UserTweetsCrawler {
 					});
 
 			if (stats != null
-					&& (!lang.equals("any") || (type.equals(TweetType.TWEETS) && page == 1))) {
+					&& (page == 1 && !lang.equals("any") || (type
+							.equals(TweetType.TWEETS)))) {
 				StringBuilder b = new StringBuilder();
 				for (Status status : stats) {
 					b.append(" " + status.getText());

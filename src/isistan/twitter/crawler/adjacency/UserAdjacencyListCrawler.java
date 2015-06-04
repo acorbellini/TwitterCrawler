@@ -81,7 +81,7 @@ public class UserAdjacencyListCrawler {
 							Integer.valueOf(cont).toString());
 				}
 			}
-		} while (ids != null && ids.hasNext() && !status.has("IS_ESCAPED"));
+		} while (ids != null && ids.hasNext() && !status.isEscaped());
 
 	}
 
