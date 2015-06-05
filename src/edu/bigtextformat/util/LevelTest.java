@@ -52,9 +52,9 @@ public class LevelTest {
 				.setBaseSize(2 * 1024 * 1024).setMaxLevel0Files(4)
 				.setMaxCompactionWriters(4).setMaxCompactorThreads(4)
 				.setCompactLevel0Threshold(4).setMaxLevelFiles(10)
-				.setMaxBlockSize(8 * 1024)
+				.setMaxBlockSize(512 * 1024)
 				// .setAppendOnly(true)
-				.setCompressed(CompressionType.SNAPPY.getComp());
+				.setCompressed(CompressionType.BZIP.getComp());
 		SortedLevelFile file = SortedLevelFile.open(PATH, opts);
 
 		file.compact();

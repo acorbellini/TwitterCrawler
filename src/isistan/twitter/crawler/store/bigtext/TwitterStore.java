@@ -139,7 +139,7 @@ public class TwitterStore {
 						.setSyncMemtable(sync).setMemTableSize(mem)
 						.setBaseSize(20 * 1024 * 1024).setMaxLevelFiles(10)
 						.setMaxBlockSize(512 * 1024)
-						.setCompressed(CompressionType.BZIP.getComp()));
+						.setCompressed(CompressionType.XZ.getComp()));
 	}
 
 	public long[] getAdjacency(Long user, ListType type) throws Exception {

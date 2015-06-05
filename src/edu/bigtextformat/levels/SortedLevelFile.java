@@ -212,6 +212,8 @@ public class SortedLevelFile {
 	}
 
 	public synchronized void close() throws Exception {
+		if (closed)
+			return;
 		log.info("Closing SLF at " + cwd);
 		closed = true;
 
