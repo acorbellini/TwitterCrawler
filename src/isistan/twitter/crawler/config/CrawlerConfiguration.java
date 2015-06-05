@@ -116,7 +116,7 @@ public class CrawlerConfiguration {
 		crawlDir = new File(outputdir + "/crawl");
 		crawlstatus = new File(outputdir + "/crawl-status");
 
-		boolean sync = true;
+		boolean sync = false;
 		if (config.getProperty(SYNC) != null)
 			sync = Boolean.valueOf(config.getProperty(SYNC));
 		store = new TwitterStore(new File(outputdir), sync);
