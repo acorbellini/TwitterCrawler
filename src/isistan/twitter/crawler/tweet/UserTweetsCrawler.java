@@ -119,7 +119,7 @@ public class UserTweetsCrawler {
 				String[] list = cat.categorize(b.toString());
 				boolean containsLang = false;
 				for (String string : list) {
-					if (string.equals(lang))
+					if (string!=null && string.equals(lang))
 						containsLang = true;
 				}
 				if (!containsLang) {
