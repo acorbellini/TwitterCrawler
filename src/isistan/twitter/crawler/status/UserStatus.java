@@ -163,6 +163,10 @@ public class UserStatus {
 	public void setSuspended() throws Exception {
 		set("IS_SUSPENDED", "TRUE");
 	}
+	
+	public void removeSuspended() throws Exception {
+		set("IS_SUSPENDED", "FALSE");
+	}
 
 	public void setTweetsComplete() throws Exception {
 		set("TweetInfoComplete", "True");

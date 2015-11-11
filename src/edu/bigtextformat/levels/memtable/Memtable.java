@@ -37,7 +37,7 @@ public class Memtable {
 			try {
 				byte id = f.readBytes(cont++, 1)[0];
 				OperationType op = OperationType.fromID(id);
-				if (op.equals(OperationType.PUT)) {
+				if (op != null && op.equals(OperationType.PUT)) {
 					int ks = DataTypeUtils.byteArrayToInt(f.readBytes(cont, 4));
 					cont += 4;
 					byte[] k = f.readBytes(cont, ks);

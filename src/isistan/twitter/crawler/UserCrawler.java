@@ -31,19 +31,20 @@ public class UserCrawler {
 
 		final UserStatus userProp = config.getStore().getUserStatus(u);
 
+		if ((!config.retrySuspended() || !userProp.isSuspended()) && userProp.isDisabled()) {
+			log.info("User " + u + " is DISABLED (escaped= " + userProp.isEscaped() + " protected="
+					+ userProp.isProtected() + " suspended=" + userProp.isSuspended() + ").");
+			return;
+		} else if (config.retrySuspended() && userProp.isSuspended()) {
+			log.info("Retrying SUSPENDED User " + u + ".");
+			userProp.removeSuspended();
+		}
+
 		if (!config.isForceRecrawl() && userProp.isComplete()) {
-			log.info("Skipping user " + u
-					+ ": is completed and forceRecrawl is false");
+			log.info("Skipping user " + u + ": it is COMPLETED and ForceRecrawl is false");
 			return;
 		}
 
-		if (userProp.isDisabled()) {
-			log.info("User " + u + " is DISABLED (escaped= "
-					+ userProp.isEscaped() + " protected="
-					+ userProp.isProtected() + " suspended="
-					+ userProp.isSuspended() + ").");
-			return;
-		}
 		UserInfo info = config.getStore().getUserInfo(u);
 		if (info == null || !userProp.isInfoComplete()) {
 			log.info("Storing User Info for " + u);
@@ -65,34 +66,29 @@ public class UserCrawler {
 
 					@Override
 					public void run() {
-						userProp.getFolloweeCrawler(config.isForceRecrawl())
-								.crawl(username);
+						userProp.getFolloweeCrawler(config.isForceRecrawl()).crawl(username);
 					}
 				}));
 			else
-				log.info("Ignoring FOLLOWEES for " + u + " (@" + username
-						+ ").");
+				log.info("Ignoring FOLLOWEES for " + u + " (@" + username + ").");
 
 			if (config.isCrawlFollowers())
 				futs.add(execUser.submit(new Runnable() {
 
 					@Override
 					public void run() {
-						userProp.getFollowerCrawler(config.isForceRecrawl())
-								.crawl(username);
+						userProp.getFollowerCrawler(config.isForceRecrawl()).crawl(username);
 					}
 				}));
 			else
-				log.info("Ignoring FOLLOWERS for " + u + " (@" + username
-						+ ").");
+				log.info("Ignoring FOLLOWERS for " + u + " (@" + username + ").");
 
 			if (config.isCrawlTweets())
 				futs.add(execUser.submit(new Runnable() {
 
 					@Override
 					public void run() {
-						userProp.getTweetCrawler(config.isForceRecrawl(),
-								config.getLanguage()).crawl(username);
+						userProp.getTweetCrawler(config.isForceRecrawl(), config.getLanguage()).crawl(username);
 					}
 				}));
 			else
@@ -103,8 +99,7 @@ public class UserCrawler {
 
 					@Override
 					public void run() {
-						userProp.getFavCrawler(config.isForceRecrawl(),
-								config.getLanguage()).crawl(username);
+						userProp.getFavCrawler(config.isForceRecrawl(), config.getLanguage()).crawl(username);
 					}
 				}));
 			else
@@ -113,9 +108,8 @@ public class UserCrawler {
 		for (Future<?> future : futs) {
 			future.get();
 		}
-		if (userProp.isFolloweeComplete() && userProp.isFollowerComplete()
-				&& userProp.isTweetComplete() && userProp.isFavoriteComplete()
-				&& userProp.isInfoComplete())
+		if (userProp.isFolloweeComplete() && userProp.isFollowerComplete() && userProp.isTweetComplete()
+				&& userProp.isFavoriteComplete() && userProp.isInfoComplete())
 			userProp.setComplete();
 
 	}

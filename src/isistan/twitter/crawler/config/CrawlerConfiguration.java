@@ -110,6 +110,8 @@ public class CrawlerConfiguration {
 
 	private int minTweets;
 
+	private boolean retrySuspended;
+
 	private CrawlerConfiguration(Properties config) throws Exception {
 		outputdir = config.getProperty(OUTPUTDIR);
 		userListFile = config.getProperty(INPUT_FILE);
@@ -130,6 +132,11 @@ public class CrawlerConfiguration {
 		forceRecrawl = false;
 		if (config.getProperty("forceRecrawl") != null)
 			forceRecrawl = new Boolean(config.getProperty("forceRecrawl"));
+		
+		retrySuspended = false;
+		if (config.getProperty("retrySuspended") != null)
+			retrySuspended = new Boolean(config.getProperty("retrySuspended"));
+		
 		String crawlList = config.getProperty("crawl");
 		if (crawlList != null) {
 			for (String el : crawlList.replace(" ", "").split(",")) {
@@ -363,6 +370,10 @@ public class CrawlerConfiguration {
 
 	public String getUserLanguage() {
 		return userLang;
+	}
+
+	public boolean retrySuspended() {
+		return retrySuspended;
 	}
 
 }
