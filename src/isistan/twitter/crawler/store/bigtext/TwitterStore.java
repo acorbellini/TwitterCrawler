@@ -26,6 +26,8 @@ import twitter4j.Place;
 import twitter4j.ResponseList;
 import twitter4j.Status;
 import twitter4j.User;
+import edu.bigtextformat.block.BlockFormat;
+import edu.bigtextformat.levels.Level;
 import edu.bigtextformat.levels.LevelOptions;
 import edu.bigtextformat.levels.RangeIterator;
 import edu.bigtextformat.levels.SortedLevelFile;
@@ -58,6 +60,9 @@ public class TwitterStore {
 	private SortedLevelFile status_file;
 	private RecordFormat status_key_format;
 
+	private RecordFormat old_followees_key_format;
+	private RecordFormat old_followers_key_format;
+
 	private Properties ltProp;
 	private File file;
 	private boolean sync;
@@ -72,34 +77,42 @@ public class TwitterStore {
 		this.ltProp = CrawlerUtil.openProperties(file + "/LatestCrawled.prop");
 
 		tweet_key_format = tweetFormat();
-		tweets_file = createSorted(file, "tweets", tweet_key_format,
-				32 * 1024 * 1024);
+		tweets_file = createSorted(file, "tweets", tweet_key_format, 32 * 1024 * 1024);
 
 		favs_key_format = tweetFormat();
 		favs_file = createSorted(file, "favs", favs_key_format, 8 * 1024 * 1024);
 
 		uinfo_key_format = infoFormat();
-		uinfo_file = createSorted(file, "uinfo", uinfo_key_format,
-				8 * 1024 * 1024);
+		uinfo_file = createSorted(file, "uinfo", uinfo_key_format, 8 * 1024 * 1024);
 
 		followees_key_format = adjFormat();
-		followees_file = createSorted(file, "followees", followees_key_format,
-				8 * 1024 * 1024);
+		followees_file = createSorted(file, "followees", followees_key_format, 8 * 1024 * 1024);
 
 		followers_key_format = adjFormat();
-		followers_file = createSorted(file, "followers", followers_key_format,
-				32 * 1024 * 1024);
+		followers_file = createSorted(file, "followers", followers_key_format, 32 * 1024 * 1024);
+
+		// Retrocompatibility
+		old_followees_key_format = oldAdjFormat();
+		old_followers_key_format = oldAdjFormat();
+		if (isOldAdjFormat(followees_file))
+			followees_file.getOpts().setFormat(old_followees_key_format);
+		if (isOldAdjFormat(followers_file))
+			followers_file.getOpts().setFormat(old_followers_key_format);
 
 		status_key_format = statusFormat();
-		status_file = createSorted(file, "status", status_key_format,
-				8 * 1024 * 1024);
+		status_file = createSorted(file, "status", status_key_format, 8 * 1024 * 1024);
+	}
+
+	private RecordFormat oldAdjFormat() {
+		return RecordFormat.create(new String[] { "uid", "adj" },
+				new FormatType<?>[] { FormatTypes.LONG.getType(), FormatTypes.LONG.getType() },
+				new String[] { "uid", "adj" });
 	}
 
 	private RecordFormat adjFormat() {
 		return RecordFormat.create(new String[] { "uid", "listid" },
-				new FormatType<?>[] { FormatTypes.LONG.getType(),
-						FormatTypes.INTEGER.getType() }, new String[] { "uid",
-						"listid" });
+				new FormatType<?>[] { FormatTypes.LONG.getType(), FormatTypes.INTEGER.getType() },
+				new String[] { "uid", "listid" });
 	}
 
 	public void close() throws Exception {
@@ -131,54 +144,91 @@ public class TwitterStore {
 		status_file.compact();
 	}
 
-	private SortedLevelFile createSorted(File file, String name,
-			RecordFormat tweet_key_format2, int mem) throws Exception {
-		return SortedLevelFile.open(
-				file.getPath() + "/" + name,
-				new LevelOptions().setFormat(tweet_key_format2)
-						.setSyncMemtable(sync).setMemTableSize(mem)
-						.setBaseSize(20 * 1024 * 1024).setMaxLevelFiles(10)
-						.setMaxBlockSize(512 * 1024)
+	private SortedLevelFile createSorted(File file, String name, RecordFormat tweet_key_format2, int mem)
+			throws Exception {
+		return SortedLevelFile.open(file.getPath() + "/" + name,
+				new LevelOptions().setFormat(tweet_key_format2).setSyncMemtable(sync).setMemTableSize(mem)
+						.setBaseSize(20 * 1024 * 1024).setMaxLevelFiles(10).setMaxBlockSize(512 * 1024)
 						.setCompressed(CompressionType.XZ.getComp()));
 	}
 
 	public long[] getAdjacency(Long user, ListType type) throws Exception {
 		Iterator<Pair<byte[], byte[]>> it = null;
-		if (type.equals(ListType.FOLLOWEES)) {
-			it = followees_file.rangeIterator(
-					followees_key_format.newRecord().set("uid", user)
-							.set("listid", Integer.MIN_VALUE).toByteArray(),
-					followees_key_format.newRecord().set("uid", user)
-							.set("listid", Integer.MAX_VALUE).toByteArray());
-		} else if (type.equals(ListType.FOLLOWERS)) {
-			it = followers_file.rangeIterator(
-					followers_key_format.newRecord().set("uid", user)
-							.set("listid", Integer.MIN_VALUE).toByteArray(),
-					followers_key_format.newRecord().set("uid", user)
-							.set("listid", Integer.MAX_VALUE).toByteArray());
-		}
+
+		boolean oldFormat = false;
+		if (type.equals(ListType.FOLLOWEES) && isOldAdjFormat(followees_file))
+			oldFormat = true;
+		else if (type.equals(ListType.FOLLOWERS) && isOldAdjFormat(followers_file))
+			oldFormat = true;
+
 		TLongArrayList adj = new TLongArrayList();
-		while (it.hasNext()) {
-			Pair<byte[], byte[]> pair = (Pair<byte[], byte[]>) it.next();
-			adj.add(DataTypeUtils.byteArrayToLongArray(pair.getValue()));
+		if (!oldFormat) {
+			if (type.equals(ListType.FOLLOWEES)) {
+				it = followees_file.rangeIterator(
+						followees_key_format.newRecord().set("uid", user).set("listid", Integer.MIN_VALUE)
+								.toByteArray(),
+						followees_key_format.newRecord().set("uid", user).set("listid", Integer.MAX_VALUE)
+								.toByteArray());
+			} else if (type.equals(ListType.FOLLOWERS)) {
+				it = followers_file.rangeIterator(
+						followers_key_format.newRecord().set("uid", user).set("listid", Integer.MIN_VALUE)
+								.toByteArray(),
+						followers_key_format.newRecord().set("uid", user).set("listid", Integer.MAX_VALUE)
+								.toByteArray());
+			}
+
+			while (it.hasNext()) {
+				Pair<byte[], byte[]> pair = (Pair<byte[], byte[]>) it.next();
+				adj.add(DataTypeUtils.byteArrayToLongArray(pair.getValue()));
+			}
+		} else {
+			if (type.equals(ListType.FOLLOWEES)) {
+				it = followees_file.rangeIterator(
+						old_followees_key_format.newRecord().set("uid", user).set("adj", Long.MIN_VALUE).toByteArray(),
+						old_followees_key_format.newRecord().set("uid", user).set("adj", Long.MAX_VALUE).toByteArray());
+			} else if (type.equals(ListType.FOLLOWERS)) {
+				it = followers_file.rangeIterator(
+						old_followers_key_format.newRecord().set("uid", user).set("adj", Long.MIN_VALUE).toByteArray(),
+						old_followers_key_format.newRecord().set("uid", user).set("adj", Long.MAX_VALUE).toByteArray());
+			}
+
+			while (it.hasNext()) {
+				Pair<byte[], byte[]> pair = (Pair<byte[], byte[]>) it.next();
+				byte[] longasbytes = null;
+				if (type.equals(ListType.FOLLOWEES)) {
+					longasbytes = old_followees_key_format.getData("adj", pair.getKey());
+				} else if (type.equals(ListType.FOLLOWERS)) {
+					longasbytes = old_followers_key_format.getData("adj", pair.getKey());
+				}
+				adj.add(DataTypeUtils.byteArrayToLong(longasbytes));
+			}
 		}
 		return adj.toArray();
+	}
+
+	private boolean isOldAdjFormat(SortedLevelFile file) {
+		for (int i = 0; i <= file.getMaxLevel(); i++) {
+			Level level = file.getLevel(i);
+			if (level != null && level.size() != 0) {
+				if (level.getMinKey().length == 16)
+					return true;
+				else
+					return false;
+			}
+		}
+		return false;
 	}
 
 	public List<Tweet> getTweets(long user, TweetType type) throws Exception {
 		Iterator<Pair<byte[], byte[]>> it = null;
 		if (type.equals(TweetType.TWEETS)) {
 			it = tweets_file.rangeIterator(
-					tweet_key_format.newRecord().set("uid", user)
-							.set("tid", Long.MIN_VALUE).toByteArray(),
-					tweet_key_format.newRecord().set("uid", user)
-							.set("tid", Long.MAX_VALUE).toByteArray());
+					tweet_key_format.newRecord().set("uid", user).set("tid", Long.MIN_VALUE).toByteArray(),
+					tweet_key_format.newRecord().set("uid", user).set("tid", Long.MAX_VALUE).toByteArray());
 		} else if (type.equals(TweetType.FAVORITES)) {
 			it = favs_file.rangeIterator(
-					favs_key_format.newRecord().set("uid", user)
-							.set("tid", Long.MIN_VALUE).toByteArray(),
-					favs_key_format.newRecord().set("uid", user)
-							.set("tid", Long.MAX_VALUE).toByteArray());
+					favs_key_format.newRecord().set("uid", user).set("tid", Long.MIN_VALUE).toByteArray(),
+					favs_key_format.newRecord().set("uid", user).set("tid", Long.MAX_VALUE).toByteArray());
 		}
 		List<Tweet> tweets = new ArrayList<Tweet>();
 		while (it.hasNext()) {
@@ -249,13 +299,11 @@ public class TwitterStore {
 	// }
 
 	private RecordFormat infoFormat() {
-		return RecordFormat.create(new String[] { "uid" },
-				new FormatType<?>[] { FormatTypes.LONG.getType() },
+		return RecordFormat.create(new String[] { "uid" }, new FormatType<?>[] { FormatTypes.LONG.getType() },
 				new String[] { "uid" });
 	}
 
-	public void saveAdjacents(Long user, ListType type, ListReader listReader,
-			boolean skipCheck) throws Exception {
+	public void saveAdjacents(Long user, ListType type, ListReader listReader, boolean skipCheck) throws Exception {
 		int cont = 0;
 		TLongArrayList adj = null;
 		while (listReader.hasNext()) {
@@ -273,55 +321,44 @@ public class TwitterStore {
 			saveAdjacent(user, cont, type, skipCheck, adj.toArray());
 	}
 
-	public void saveAdjacent(Long user, int listid, ListType type,
-			boolean skipCheck, long[] f) throws Exception {
+	public void saveAdjacent(Long user, int listid, ListType type, boolean skipCheck, long[] f) throws Exception {
 		if (type.equals(ListType.FOLLOWEES)) {
-			byte[] asBytes = followees_key_format.newRecord().set("uid", user)
-					.set("listid", listid).toByteArray();
+			byte[] asBytes = followees_key_format.newRecord().set("uid", user).set("listid", listid).toByteArray();
 			if (skipCheck || !followees_file.contains(asBytes))
-				followees_file.put(asBytes,
-						DataTypeUtils.longArrayToByteArray(f));
+				followees_file.put(asBytes, DataTypeUtils.longArrayToByteArray(f));
 		} else if (type.equals(ListType.FOLLOWERS)) {
-			byte[] asBytes = followers_key_format.newRecord().set("uid", user)
-					.set("listid", listid).toByteArray();
+			byte[] asBytes = followers_key_format.newRecord().set("uid", user).set("listid", listid).toByteArray();
 			if (skipCheck || !followers_file.contains(asBytes))
-				followers_file.put(asBytes,
-						DataTypeUtils.longArrayToByteArray(f));
+				followers_file.put(asBytes, DataTypeUtils.longArrayToByteArray(f));
 		}
 	}
 
-	public void saveTweets(Long user, TweetType type, TweetReader tweetReader,
-			boolean skipCheck) throws Exception {
+	public void saveTweets(Long user, TweetType type, TweetReader tweetReader, boolean skipCheck) throws Exception {
 		while (tweetReader.hasNext()) {
 			Tweet tweet = (Tweet) tweetReader.next();
 			saveTweet(user, type, skipCheck, tweet);
 		}
 	}
 
-	public void saveTweet(Long user, TweetType type, boolean skipCheck,
-			Tweet tweet) throws Exception {
+	public void saveTweet(Long user, TweetType type, boolean skipCheck, Tweet tweet) throws Exception {
 		if (type.equals(TweetType.TWEETS)) {
-			byte[] byteArray = tweet_key_format.newRecord().set("uid", user)
-					.set("tid", tweet.tweetid).toByteArray();
+			byte[] byteArray = tweet_key_format.newRecord().set("uid", user).set("tid", tweet.tweetid).toByteArray();
 			if (skipCheck || !tweets_file.contains(byteArray))
 				tweets_file.put(byteArray, StoreUtil.tweetToByteArray(tweet));
 		} else if (type.equals(TweetType.FAVORITES)) {
-			byte[] byteArray = favs_key_format.newRecord().set("uid", user)
-					.set("tid", tweet.tweetid).toByteArray();
+			byte[] byteArray = favs_key_format.newRecord().set("uid", user).set("tid", tweet.tweetid).toByteArray();
 			if (skipCheck || !favs_file.contains(byteArray))
 				favs_file.put(byteArray, StoreUtil.tweetToByteArray(tweet));
 		}
 	}
 
 	public void saveUserInfo(UserInfo info, boolean skipCheck) throws Exception {
-		byte[] rec = uinfo_key_format.newRecord().set("uid", info.uid)
-				.toByteArray();
+		byte[] rec = uinfo_key_format.newRecord().set("uid", info.uid).toByteArray();
 		if (skipCheck || !uinfo_file.contains(rec))
 			uinfo_file.put(rec, StoreUtil.userInfoToBytes(info));
 	}
 
-	public synchronized void saveUserStatus(long user, Map<String, String> map,
-			boolean skipCheck) throws Exception {
+	public synchronized void saveUserStatus(long user, Map<String, String> map, boolean skipCheck) throws Exception {
 		Record rec = status_key_format.newRecord().set("uid", user);
 		ByteBuffer buffer = new ByteBuffer();
 		buffer.putMap(map);
@@ -331,21 +368,18 @@ public class TwitterStore {
 	}
 
 	private RecordFormat statusFormat() {
-		return RecordFormat.create(new String[] { "uid" },
-				new FormatType<?>[] { FormatTypes.LONG.getType() },
+		return RecordFormat.create(new String[] { "uid" }, new FormatType<?>[] { FormatTypes.LONG.getType() },
 				new String[] { "uid" });
 	}
 
 	private RecordFormat tweetFormat() {
 		return RecordFormat.create(new String[] { "uid", "tid" },
-				new FormatType<?>[] { FormatTypes.LONG.getType(),
-						FormatTypes.LONG.getType() }, new String[] { "uid",
-						"tid" });
+				new FormatType<?>[] { FormatTypes.LONG.getType(), FormatTypes.LONG.getType() },
+				new String[] { "uid", "tid" });
 	}
 
 	public void updateLatestCrawled(Long user) throws Exception {
-		CrawlerUtil.updateProperty("LatestCrawled", user + "", ltProp, file
-				+ "/LatestCrawled.prop");
+		CrawlerUtil.updateProperty("LatestCrawled", user + "", ltProp, file + "/LatestCrawled.prop");
 	}
 
 	public Long getLatestCrawled() {
@@ -355,34 +389,27 @@ public class TwitterStore {
 		return null;
 	}
 
-	public void addAdjacency(long u, int listid, ListType type, long[] list)
-			throws Exception {
+	public void addAdjacency(long u, int listid, ListType type, long[] list) throws Exception {
 		saveAdjacent(u, listid, type, true, list);
 	}
 
-	public void writeTweets(long user, TweetType type,
-			ResponseList<Status> stats) throws Exception {
+	public void writeTweets(long user, TweetType type, ResponseList<Status> stats) throws Exception {
 		for (Status t : stats) {
 			Status retweetedStatus = t.getRetweetedStatus();
 			Tweet tweet = new Tweet(user, t.getId(), t.getCreatedAt(),
-					simplifySource(StoreUtil.removeTags(t.getSource())),
-					Tweet.formatHashtags(t.getHashtagEntities()),
-					Tweet.formatMentionEntities(t.getUserMentionEntities()),
-					t.getText(), t.getRetweetCount(),
-					retweetedStatus != null ? retweetedStatus.getId() : -1,
-					t.getFavoriteCount(), t.isFavorited(),
+					simplifySource(StoreUtil.removeTags(t.getSource())), Tweet.formatHashtags(t.getHashtagEntities()),
+					Tweet.formatMentionEntities(t.getUserMentionEntities()), t.getText(), t.getRetweetCount(),
+					retweetedStatus != null ? retweetedStatus.getId() : -1, t.getFavoriteCount(), t.isFavorited(),
 					t.isPossiblySensitive());
-			tweet.setReply(new Reply(t.getInReplyToScreenName(), t
-					.getInReplyToUserId(), t.getInReplyToStatusId()));
+			tweet.setReply(new Reply(t.getInReplyToScreenName(), t.getInReplyToUserId(), t.getInReplyToStatusId()));
 			tweet.setContributors(t.getContributors());
 			tweet.setMedia(Tweet.formatMedia(t.getMediaEntities()));
 			if (t.getPlace() != null) {
 				Place place = t.getPlace();
-				tweet.setPlace(new isistan.twitter.crawler.tweet.Place(place
-						.getCountry(), place.getFullName(), place.getName()));
+				tweet.setPlace(new isistan.twitter.crawler.tweet.Place(place.getCountry(), place.getFullName(),
+						place.getName()));
 			} else
-				tweet.setPlace(new isistan.twitter.crawler.tweet.Place("", "",
-						""));
+				tweet.setPlace(new isistan.twitter.crawler.tweet.Place("", "", ""));
 
 			saveTweet(tweet.user, type, true, tweet);
 		}
@@ -401,19 +428,16 @@ public class TwitterStore {
 	}
 
 	public UserInfo writeInfo(User user) throws Exception {
-		UserInfo info = new UserInfo(user.getId(), user.getScreenName(),
-				user.getName(), user.getDescription(), user.getLang(),
-				new java.sql.Date(user.getCreatedAt().getTime()),
-				user.getLocation(), user.getTimeZone(), user.getUtcOffset(),
-				user.getFriendsCount(), user.getFollowersCount(),
-				user.getFavouritesCount(), user.getListedCount(),
-				user.getStatusesCount(), user.isVerified(), user.isProtected());
+		UserInfo info = new UserInfo(user.getId(), user.getScreenName(), user.getName(), user.getDescription(),
+				user.getLang(), new java.sql.Date(user.getCreatedAt().getTime()), user.getLocation(),
+				user.getTimeZone(), user.getUtcOffset(), user.getFriendsCount(), user.getFollowersCount(),
+				user.getFavouritesCount(), user.getListedCount(), user.getStatusesCount(), user.isVerified(),
+				user.isProtected());
 		saveUserInfo(info, false);
 		return info;
 	}
 
-	public static void merge(String from, String to) throws IOException,
-			Exception {
+	public static void merge(String from, String to) throws IOException, Exception {
 		Merger.merge(from + "/favs", to + "/favs");
 		Merger.merge(from + "/tweets", to + "/tweets");
 		Merger.merge(from + "/followees", to + "/followees");
@@ -423,15 +447,13 @@ public class TwitterStore {
 	}
 
 	public long[] getUserList() throws Exception {
-		RangeIterator it = status_file.rangeIterator(status_key_format
-				.newRecord().set("uid", Long.MIN_VALUE).toByteArray(),
-				status_key_format.newRecord().set("uid", Long.MAX_VALUE)
-						.toByteArray());
+		RangeIterator it = status_file.rangeIterator(
+				status_key_format.newRecord().set("uid", Long.MIN_VALUE).toByteArray(),
+				status_key_format.newRecord().set("uid", Long.MAX_VALUE).toByteArray());
 		TLongArrayList list = new TLongArrayList();
 		while (it.hasNext()) {
 			Pair<byte[], byte[]> pair = (Pair<byte[], byte[]>) it.next();
-			list.add(DataTypeUtils.byteArrayToLong(status_key_format.getData(
-					"uid", pair.getKey())));
+			list.add(DataTypeUtils.byteArrayToLong(status_key_format.getData("uid", pair.getKey())));
 		}
 
 		return list.toArray();
