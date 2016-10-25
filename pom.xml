@@ -49,8 +49,9 @@
 						<phase>package</phase>
 						<configuration>
 							<tasks>
-								<copy tofile="${project.basedir}/dist/TwitterCrawler-1.0.jar"
-									file="${project.build.directory}/${project.build.finalName}-shaded.jar" />
+								<!-- <copy tofile="${project.basedir}/dist/TwitterCrawler-1.0.jar" -->
+								<!-- file="${project.build.directory}/${project.build.finalName}-shaded.jar" 
+									/> -->
 								<tar destfile="${project.basedir}/release/twitter-crawler.tar.gz"
 									compression="gzip" basedir="${project.basedir}/dist/" />
 							</tasks>
